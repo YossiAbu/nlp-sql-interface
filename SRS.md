@@ -250,7 +250,7 @@ At a high level, the system performs the following functions:
 
 The diagram below illustrates the interaction between the major components of the system:
 
-![System Architecture](../architecture_diagram/nlp-sql-diagram.png)
+![System Architecture](./architecture_diagram.png)
 
 The system follows a modular, loosely-coupled architecture that separates the frontend, backend, asynchronous processing, and external services using containers and Kafka for decoupled communication.
 
