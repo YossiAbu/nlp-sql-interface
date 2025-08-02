@@ -38,7 +38,7 @@ export default function QueryInput({ onSubmit, isLoading }: Props) {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* title */}
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-brand-gradient flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <h2 className="text-xl font-semibold">
@@ -65,7 +65,7 @@ export default function QueryInput({ onSubmit, isLoading }: Props) {
             <Button
               type="submit"
               disabled={!question.trim() || isLoading}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+              className="bg-brand-gradient hover:bg-brand-gradient-hover text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
             >
               {isLoading ? (
                 <>

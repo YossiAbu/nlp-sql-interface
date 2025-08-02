@@ -138,4 +138,11 @@
     --tw-gradient-to: theme('colors.purple.600');
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
   }
+
+  .hover\:bg-brand-gradient-hover:hover {
+    background-image: theme('backgroundImage.gradient-to-r');
+    --tw-gradient-from: theme('colors.blue.700');
+    --tw-gradient-to: theme('colors.purple.700');
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
 }
