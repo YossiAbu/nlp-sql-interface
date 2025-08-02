@@ -17,7 +17,7 @@ const ThemeToggle = () => {
   return (
     <button
       onClick={handleToggle}
-      className="w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition rounded-lg px-3 py-2 border border-slate-700/50"
+      className="w-full flex items-center justify-center gap-2 text-sm font-medium  text-gray-950 dark:text-slate-300 dark:hover:text-white hover:bg-slate-800/50 transition rounded-lg px-3 py-2 border border-slate-700/50"
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
     >
       {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

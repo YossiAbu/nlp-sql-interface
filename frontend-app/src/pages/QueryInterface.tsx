@@ -2,13 +2,16 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Query as QueryType } from "@/entities/Query";
 import { InvokeLLM } from "@/integrations/Core";
-import QueryInput from "../components/query/QueryInput";
-import QueryResults from "../components/query/QueryResults";
+import QueryInput from "@/components/query/QueryInput";
+import QueryResults from "@/components/query/QueryResults";
 
 export default function QueryInterface() {
   const [currentQuery, setCurrentQuery] = useState<QueryType | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  /* ------------------------------------------------------------------ */
+  /* Handler: submit question                                           */
+  /* ------------------------------------------------------------------ */
   const handleSubmitQuery = async (question: string) => {
     setIsLoading(true);
     const startTime = Date.now();
@@ -34,17 +37,14 @@ export default function QueryInterface() {
               sql_query: { type: "string" },
               results: {
                 type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: true
-                }
+                items: { type: "object", additionalProperties: true },
               },
               status: { type: "string", enum: ["success", "error"] },
               execution_time: { type: "number" },
-              error_message: { type: "string" }
+              error_message: { type: "string" },
             },
-            required: ["sql_query", "status"]
-          }
+            required: ["sql_query", "status"],
+          },
         }
       );
 
@@ -56,7 +56,7 @@ export default function QueryInterface() {
         results: response.results || [],
         execution_time: response.execution_time || executionTime,
         status: response.status || "success",
-        error_message: response.error_message
+        error_message: response.error_message,
       };
 
       setCurrentQuery(queryData);
@@ -68,7 +68,7 @@ export default function QueryInterface() {
         results: [],
         execution_time: Date.now() - startTime,
         status: "error",
-        error_message: "Failed to process your question. Please try again."
+        error_message: "Failed to process your question. Please try again.",
       };
 
       setCurrentQuery(errorQuery);
@@ -77,41 +77,46 @@ export default function QueryInterface() {
     setIsLoading(false);
   };
 
+  /* ------------------------------------------------------------------ */
+  /* Render                                                             */
+  /* ------------------------------------------------------------------ */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Hero Section */}
+    <div className="min-h-screen bg-surface text-body p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* ── Hero Section ─────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-12"
         >
-          <div className="mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl">
+          <div>
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl">
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
               >
-                <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full" />
+                <div className="w-8 h-8 border-2 border-[var(--primary-foreground)]/30 border-t-[var(--primary-foreground)] rounded-full" />
               </motion.div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-              Ask Your
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                {" "}Database
+
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">
+              Ask&nbsp;Your{" "}
+              <span className="bg-gradient-to-r from-[var(--primary)] to-purple-400 bg-clip-text text-transparent">
+                Database
               </span>
             </h1>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
-              Transform natural language questions into powerful SQL queries instantly.
-              No SQL knowledge required.
+
+            <p className="text-xl text-muted-body max-w-2xl mx-auto leading-relaxed">
+              Transform natural-language questions into powerful SQL queries
+              instantly. No SQL knowledge required.
             </p>
           </div>
         </motion.div>
 
-        {/* Query Input */}
+        {/* ── Query Input ──────────────────────────────────────────── */}
         <QueryInput onSubmit={handleSubmitQuery} isLoading={isLoading} />
 
-        {/* Query Results */}
+        {/* ── Query Results ───────────────────────────────────────── */}
         {(currentQuery || isLoading) && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -122,7 +127,7 @@ export default function QueryInterface() {
           </motion.div>
         )}
 
-        {/* Feature Highlights */}
+        {/* ── Feature Highlights (only when idle) ─────────────────── */}
         {!currentQuery && !isLoading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -132,25 +137,33 @@ export default function QueryInterface() {
           >
             {[
               {
-                title: "Natural Language Processing",
-                description: "Ask questions in plain English, get precise SQL queries",
-                icon: "🧠"
+                title: "Natural-Language Input",
+                description:
+                  "Ask questions in plain English and get precise SQL back.",
+                icon: "🧠",
               },
               {
                 title: "Instant Results",
-                description: "See your data immediately with beautiful table formatting",
-                icon: "⚡"
+                description:
+                  "See your data immediately with beautiful table output.",
+                icon: "⚡",
               },
               {
                 title: "Query History",
-                description: "Access and rerun your previous queries anytime",
-                icon: "📚"
-              }
+                description:
+                  "Access and rerun your previous queries anytime you like.",
+                icon: "📚",
+              },
             ].map((feature, index) => (
-              <div key={index} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6 text-center">
+              <div
+                key={index}
+                className="bg-surface-card backdrop-blur-xl rounded-xl border border-theme p-6 text-center"
+              >
                 <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-white font-semibold mb-2">{feature.title}</h3>
-                <p className="text-slate-400 text-sm">{feature.description}</p>
+                <h3 className="font-semibold mb-2">{feature.title}</h3>
+                <p className="text-muted-body text-sm">
+                  {feature.description}
+                </p>
               </div>
             ))}
           </motion.div>

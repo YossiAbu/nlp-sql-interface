@@ -1,6 +1,5 @@
 import './App.css'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Home from './pages/Home'
 import QueryInterface from './pages/QueryInterface'
 import History from './pages/History'
 import Layout from './components/layout/Layout'

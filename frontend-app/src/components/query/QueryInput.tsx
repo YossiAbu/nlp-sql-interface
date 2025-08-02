@@ -1,23 +1,24 @@
-import React, { useState, FormEvent } from "react";
+import { useState, FormEvent } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { Sparkles, Loader2, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// ✅ Add prop types
-interface QueryInputProps {
+
+interface Props {
   onSubmit: (question: string) => void;
   isLoading: boolean;
 }
 
-export default function QueryInput({ onSubmit, isLoading }: QueryInputProps) {
-  const [question, setQuestion] = useState<string>("");
+export default function QueryInput({ onSubmit, isLoading }: Props) {
+  const [question, setQuestion] = useState("");
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (question.trim() && !isLoading) {
-      onSubmit(question.trim());
-    }
+    if (!question.trim() || isLoading) return;
+    onSubmit(question.trim());
+    setQuestion("");
   };
 
   const placeholderQuestions = [
@@ -31,31 +32,36 @@ export default function QueryInput({ onSubmit, isLoading }: QueryInputProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-4xl mx-auto"
+      className="mx-auto w-full max-w-4xl"
     >
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+      <div className="bg-surface-card backdrop-blur-xl border border-theme rounded-2xl shadow-2xl p-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* title */}
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-white">Ask your database anything</h2>
+            <h2 className="text-xl font-semibold">
+              Ask your database anything
+            </h2>
           </div>
 
-          <div className="relative">
-            <Textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Type your question in plain English..."
-              className="min-h-[120px] bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400 resize-none text-lg leading-relaxed focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
-              disabled={isLoading}
-            />
-          </div>
+          {/* textarea */}
+          <Textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder='e.g. "Show me all customers from New York with orders over $1000"'
+            disabled={isLoading}
+            className="min-h-[130px] w-full bg-surface-input border-theme rounded-xl p-4 text-lg leading-relaxed text-body placeholder:text-muted-body resize-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition"
+          />
 
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-slate-400">
-              Try asking about users, orders, products, or sales data
-            </div>
+          {/* footer */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-body">
+              Tip: reference tables like <em>users</em>, <em>orders</em>, or{" "}
+              <em>products</em>.
+            </p>
+
             <Button
               type="submit"
               disabled={!question.trim() || isLoading}
@@ -64,26 +70,31 @@ export default function QueryInput({ onSubmit, isLoading }: QueryInputProps) {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Processing...
+                  Processing
                 </>
               ) : (
                 <>
                   <Send className="w-5 h-5 mr-2" />
-                  Ask Database
+                  Ask&nbsp;Database
                 </>
               )}
             </Button>
           </div>
         </form>
-
-        <div className="mt-6 pt-6 border-t border-slate-700/50">
-          <p className="text-sm text-slate-400 mb-3">Try these example questions:</p>
+        <div className="mt-6 pt-6 border-t border-theme">
+          <p className="text-sm text-muted-body mb-3">Try these example questions:</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {placeholderQuestions.map((example, index) => (
               <button
                 key={index}
                 onClick={() => setQuestion(example)}
-                className="text-left p-3 bg-slate-800/30 hover:bg-slate-700/50 rounded-lg text-sm text-slate-300 hover:text-white transition-all duration-200 border border-slate-700/30 hover:border-slate-600/50"
+                className={cn(
+                  "text-left p-3 rounded-lg text-sm transition-all duration-200",
+                  "bg-surface-card text-body border border-theme",
+                  "hover:bg-[rgba(0,0,0,0.05)] dark:hover:bg-white/5",
+                  "hover:text-body hover:border-foreground",
+                  isLoading && "opacity-50 cursor-not-allowed"
+                )}
                 disabled={isLoading}
               >
                 {example}
@@ -91,6 +102,7 @@ export default function QueryInput({ onSubmit, isLoading }: QueryInputProps) {
             ))}
           </div>
         </div>
+
       </div>
     </motion.div>
   );
