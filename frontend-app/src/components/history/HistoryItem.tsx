@@ -57,7 +57,7 @@ export default function HistoryItem({ query, onRerun, index }: Props) {
             <div className="flex-1 min-w-0">
               {/* Question with copy button */}
               <div className="relative mb-2">
-                <p className="text-muted-body font-medium line-clamp-2 pr-10">
+                <p className="text-muted-body font-medium pr-10 break-words whitespace-pre-wrap">
                   {query.question}
                 </p>
                 <Button
