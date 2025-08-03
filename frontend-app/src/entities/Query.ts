@@ -1,10 +1,9 @@
 export interface Query {
-  id?: string;
   question: string;
   sql_query: string;
-  results: Record<string, any>[];
+  results: string; // Human-readable answer from LLM
+  raw_rows?: Record<string, unknown>[]; // Actual SQL result rows
   execution_time: number;
   status: "success" | "error";
   error_message?: string;
-  created_date?: string; // for display in history
 }

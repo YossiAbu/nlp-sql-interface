@@ -4,6 +4,7 @@ import { Query as QueryType } from "@/entities/Query";
 import { InvokeLLM } from "@/integrations/Core";
 import QueryInput from "@/components/query/QueryInput";
 import QueryResults from "@/components/query/QueryResults";
+import { fetchQuery } from "@/lib/api";
 
 export default function QueryInterface() {
   const [currentQuery, setCurrentQuery] = useState<QueryType | null>(null);
@@ -36,43 +37,16 @@ export default function QueryInterface() {
     const startTime = Date.now();
 
     try {
-      const response = await InvokeLLM(
-        `Convert this natural language question to a SQL query and provide sample results. Question: "${question}". 
-
-        Assume we have a typical e-commerce database with tables like users, orders, products, etc. 
-        Provide realistic sample data for the results.
-
-        Return the response in the following JSON format:
-        {
-          "sql_query": "SELECT * FROM ...",
-          "results": [array of sample result objects],
-          "status": "success",
-          "execution_time": number_in_ms
-        }`,
-        {
-          response_json_schema: {
-            type: "object",
-            properties: {
-              sql_query: { type: "string" },
-              results: {
-                type: "array",
-                items: { type: "object", additionalProperties: true },
-              },
-              status: { type: "string", enum: ["success", "error"] },
-              execution_time: { type: "number" },
-              error_message: { type: "string" },
-            },
-            required: ["sql_query", "status"],
-          },
-        }
-      );
+      const response = await fetchQuery(question);
 
       const executionTime = Date.now() - startTime;
 
+      // Fixed: Properly map the response structure from your FastAPI backend
       const queryData: QueryType = {
         question,
-        sql_query: response.sql_query,
-        results: response.results || [],
+        sql_query: response.sql_query || "",
+        results: response.results || "", // This is the human-readable answer
+        raw_rows: response.raw_rows || [], // This is the actual table data
         execution_time: response.execution_time || executionTime,
         status: response.status || "success",
         error_message: response.error_message,
@@ -84,7 +58,8 @@ export default function QueryInterface() {
       const errorQuery: QueryType = {
         question,
         sql_query: "",
-        results: [],
+        results: "",
+        raw_rows: [],
         execution_time: Date.now() - startTime,
         status: "error",
         error_message: "Failed to process your question. Please try again.",
