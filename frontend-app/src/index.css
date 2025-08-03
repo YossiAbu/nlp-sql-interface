@@ -50,6 +50,7 @@
 :root {
   --radius: 0.625rem;
   --background: oklch(0.984 0.003 247.858);
+  --surface-gradient: oklch(0.944 0.010 248.000);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
@@ -72,7 +73,7 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar: oklch(0.968 0.007 247.896);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
@@ -86,6 +87,7 @@
 
 .dark {
   --background: oklch(19.813% 0.02271 272.419);
+  --surface-gradient: linear-gradient(to bottom right, #0f172a, #1e293b, #0f172a);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
   --card-foreground: oklch(0.984 0.003 247.858);
@@ -108,7 +110,7 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(19.813% 0.02271 272.419);
+  --sidebar: #1e293b;
   --sidebar-foreground: oklch(0.984 0.003 247.858);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
@@ -145,4 +147,10 @@
     --tw-gradient-to: theme('colors.purple.700');
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
   }
+
+  .bg-surface {
+    background-image: var(--surface-gradient);
+    background-color: var(--background); /* fallback */
+  }
+
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Query as QueryType } from "@/entities/Query";
 import { InvokeLLM } from "@/integrations/Core";
@@ -8,6 +8,25 @@ import QueryResults from "@/components/query/QueryResults";
 export default function QueryInterface() {
   const [currentQuery, setCurrentQuery] = useState<QueryType | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /* ------------------------------------------------------------------ */
+  /* Handler: Check URL parameters on mount                             */
+  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const questionFromUrl = urlParams.get('question');
+    
+    if (questionFromUrl) {
+      const decodedQuestion = decodeURIComponent(questionFromUrl);
+      // Small delay to ensure component is fully mounted
+      setTimeout(() => {
+        handleSubmitQuery(decodedQuestion);
+      }, 100);
+      
+      // Clean up URL after processing
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   /* ------------------------------------------------------------------ */
   /* Handler: submit question                                           */
@@ -78,6 +97,13 @@ export default function QueryInterface() {
   };
 
   /* ------------------------------------------------------------------ */
+  /* Handler: Rerun query from history                                  */
+  /* ------------------------------------------------------------------ */
+  const handleRerunQuery = (query: QueryType) => {
+    handleSubmitQuery(query.question);
+  };
+
+  /* ------------------------------------------------------------------ */
   /* Render                                                             */
   /* ------------------------------------------------------------------ */
   return (
@@ -95,7 +121,7 @@ export default function QueryInterface() {
                 animate={{ rotate: 360 }}
                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
               >
-                <div className="w-8 h-8 border-2 border-[var(--primary-foreground)]/30 border-t-[var(--primary-foreground)] rounded-full" />
+                <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full" />
               </motion.div>
             </div>
 
@@ -123,7 +149,11 @@ export default function QueryInterface() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <QueryResults query={currentQuery} isLoading={isLoading} />
+            <QueryResults
+              query={currentQuery} 
+              isLoading={isLoading} 
+              userQuestion={currentQuery?.question}
+            />
           </motion.div>
         )}
 

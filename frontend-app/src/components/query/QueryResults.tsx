@@ -6,7 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, Database, AlertTriangle } from "lucide-react";
+import { Copy, Check, Database, AlertTriangle, MessageSquare } from "lucide-react";
+import { format as formatSql } from "sql-formatter";
 
 interface Props {
   query: {
@@ -17,10 +18,12 @@ interface Props {
     error_message?: string;
   } | null;
   isLoading: boolean;
+  userQuestion?: string;
 }
 
-export default function QueryResults({ query, isLoading }: Props) {
-  const [copied, setCopied] = useState(false);
+export default function QueryResults({ query, isLoading, userQuestion }: Props) {
+  const [copiedQuestion, setCopiedQuestion] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   if (!query && !isLoading) return null;
 
@@ -36,50 +39,95 @@ export default function QueryResults({ query, isLoading }: Props) {
     );
   }
 
+  const copyQuestion = async () => {
+    if (!userQuestion) return;
+    await navigator.clipboard.writeText(userQuestion);
+    setCopiedQuestion(true);
+    setTimeout(() => setCopiedQuestion(false), 1500);
+  };
+
   const copySql = async () => {
     if (!query?.sql_query) return;
     await navigator.clipboard.writeText(query.sql_query);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 1500);
   };
 
   return (
     <>
       {/* SQL card */}
-      <Card className="bg-surface-card border border-theme shadow-2xl">
-        <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+      <Card className="bg-surface-card border-2 border-theme shadow-2xl mt-8">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="w-5 h-5" />
             Generated SQL&nbsp;({query!.execution_time} ms)
           </CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={copySql}
-            className="border-theme bg-surface-input hover:bg-surface-input/80 text-muted-body"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 mr-1" /> Copied
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 mr-1" /> Copy
-              </>
-            )}
-          </Button>
         </CardHeader>
         <CardContent>
-          <pre className="bg-surface-input border border-theme rounded-xl p-4 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
-            {query!.sql_query}
-          </pre>
+          {/* User Question Display */}
+          {userQuestion && (
+            <div className="mb-4 p-3 bg-surface-input/50 border border-theme/50 rounded-lg relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-muted-body">Your Question</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copyQuestion}
+                  className="border-theme/50 bg-surface-input/50 hover:bg-surface-input/80 text-muted-body h-7 px-2"
+                >
+                  {copiedQuestion ? (
+                    <>
+                      <Check className="w-3 h-3 mr-1" /> Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 mr-1" /> Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-body italic">"{userQuestion}"</p>
+            </div>
+          )}
+          
+          {/* SQL Query Display */}
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <Database className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-muted-body">SQL Query</span>
+            </div>
+            <div className="relative">
+              <pre className="bg-surface-input border border-theme rounded-xl p-4 pr-16 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
+                {formatSql(query!.sql_query)}
+              </pre>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={copySql}
+                className="absolute top-3 right-3 border-theme bg-surface-input hover:bg-surface-input/80 text-muted-body h-7 px-2"
+              >
+                {copiedSql ? (
+                  <>
+                    <Check className="w-3 h-3 mr-1" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3 mr-1" /> Copy
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* results or error */}
       {query!.status === "success" ? (
         query!.results?.length ? (
-          <Card className="bg-surface-card border border-theme shadow-2xl">
+          <Card className="bg-surface-card border-2 border-theme shadow-2xl mt-8">
             <CardHeader>
               <CardTitle>
                 Results&nbsp;({query!.results.length}

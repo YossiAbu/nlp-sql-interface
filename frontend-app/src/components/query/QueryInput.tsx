@@ -34,7 +34,7 @@ export default function QueryInput({ onSubmit, isLoading }: Props) {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto w-full max-w-4xl"
     >
-      <div className="bg-surface-card backdrop-blur-xl border border-theme rounded-2xl shadow-2xl p-6">
+      <div className="bg-surface-card backdrop-blur-xl border-2 border-theme rounded-2xl shadow-2xl p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* title */}
           <div className="flex items-center gap-3">
@@ -52,7 +52,7 @@ export default function QueryInput({ onSubmit, isLoading }: Props) {
             onChange={(e) => setQuestion(e.target.value)}
             placeholder='e.g. "Show me all customers from New York with orders over $1000"'
             disabled={isLoading}
-            className="min-h-[130px] w-full bg-surface-input border-theme rounded-xl p-4 text-lg leading-relaxed text-body placeholder:text-muted-body resize-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition"
+            className="min-h-[130px] w-full bg-surface-input border-2 border-theme rounded-xl p-4 text-lg leading-relaxed text-body placeholder:text-muted-body resize-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition"
           />
 
           {/* footer */}
