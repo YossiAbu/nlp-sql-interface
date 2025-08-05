@@ -1,7 +1,7 @@
 from services.query_service import handle_query
 
 def test_handle_query_with_mock():
-    """Test handle_query directly using the mocked DB chain."""
+    """Test handle_query directly using the mocked DB chain"""
     question = "Who are the best players?"
     result = handle_query(question)
 
