@@ -2,6 +2,8 @@ fastapi
 uvicorn
 sqlalchemy
 langchain
+langchain-community
+langchain-experimental
 pytest
 pytest-asyncio
 pytest-cov
