@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from models.request_models import QueryRequest
 from models.response_models import QueryResponse, SchemaResponse
 from services.query_service import handle_query
-from services.schema_service import get_schema_response, get_schema_text
+from services.schema_service import get_schema_response, refresh_schema_cache
 
-app = FastAPI()
+app: FastAPI = FastAPI()
 
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,14 +17,16 @@ app.add_middleware(
 )
 
 @app.post("/query", response_model=QueryResponse)
-async def process_query(payload: QueryRequest):
+async def process_query(payload: QueryRequest) -> QueryResponse:
+    """Process a natural language question and return SQL + results."""
     return handle_query(payload.question)
 
 @app.get("/schema", response_model=SchemaResponse)
-async def get_schema():
+async def get_schema() -> SchemaResponse:
+    """Return the current database schema in structured JSON."""
     return get_schema_response()
 
-@app.get("/refresh-schema")
-async def refresh_schema():
-    get_schema_text(force_refresh=True)
-    return {"status": "Schema cache refreshed"}
+@app.get("/refresh-schema", response_model=SchemaResponse)
+async def refresh_schema() -> SchemaResponse:
+    """Refresh schema cache and return updated database schema."""
+    return refresh_schema_cache()

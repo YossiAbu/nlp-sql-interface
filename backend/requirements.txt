@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+langchain
+pytest
+pytest-asyncio
+pytest-cov
+httpx
+python-dotenv
