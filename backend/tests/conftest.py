@@ -14,7 +14,7 @@ class FakeDBChain:
 
 @pytest.fixture(autouse=True)
 def mock_services(monkeypatch):
-    """Automatically mock AI chain and schema text for all tests."""
+    """Automatically mock AI chain and schema for all tests."""
     import services.query_service as qs
     import services.schema_service as ss
 
@@ -23,9 +23,10 @@ def mock_services(monkeypatch):
         return FakeDBChain()
     monkeypatch.setattr(qs, "get_db_chain", fake_get_db_chain)
 
-    # Fake schema text
-    fake_schema_text = "Table: players | Columns: name, ovr"
+    # Mock schema text
+    monkeypatch.setattr(ss, "get_schema_text", lambda force_refresh=False: "Table: players | Columns: name, ovr")
+    monkeypatch.setattr(qs, "get_schema_text", lambda force_refresh=False: "Table: players | Columns: name, ovr")
 
-    # Patch both schema_service and query_service references
-    monkeypatch.setattr(ss, "get_schema_text", lambda force_refresh=False: fake_schema_text)
-    monkeypatch.setattr(qs, "get_schema_text", lambda force_refresh=False: fake_schema_text)
+    # Mock schema endpoints so no DB is needed
+    monkeypatch.setattr(ss, "get_schema_response", lambda force_refresh=False: {"tables": []})
+    monkeypatch.setattr(ss, "refresh_schema_cache", lambda: {"tables": []})
