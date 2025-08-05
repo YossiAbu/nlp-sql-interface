@@ -1,11 +1,10 @@
 import pandas as pd
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
+import os
 
-USERNAME = "myuser"
-PASSWORD = "mypassword"
-DB_HOSTNAME = "localhost"
-DB_NAME = "fc25"
-DATABASE_URI = f"postgresql://{USERNAME}:{PASSWORD}@{DB_HOSTNAME}/{DB_NAME}"
+load_dotenv()
+postgres_url: str | None = os.getenv("POSTGRESQL_URL")
 
 df = pd.read_csv("./data/male_players.csv")
 df.drop(list(df.columns[:2]), axis=1, inplace=True)
@@ -29,7 +28,7 @@ df.columns = (
     .str.replace(" ", "_")
 )
 
-engine = create_engine(DATABASE_URI)
+engine = create_engine(postgres_url)
 
 df.to_sql("players", engine, if_exists="replace", index=False)
 
