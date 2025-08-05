@@ -13,11 +13,15 @@ class FakeDBChain:
         }
 
 @pytest.fixture(autouse=True)
-def mock_get_db_chain(monkeypatch):
-    """Automatically mock get_db_chain in all tests."""
-    from services import query_service
+def mock_services(monkeypatch):
+    """Automatically mock external dependencies for tests."""
+    import services.query_service as qs
+    import services.schema_service as ss
 
+    # Mock AI chain
     def fake_get_db_chain():
         return FakeDBChain()
+    monkeypatch.setattr(qs, "get_db_chain", fake_get_db_chain)
 
-    monkeypatch.setattr(query_service, "get_db_chain", fake_get_db_chain)
+    # Mock schema text
+    monkeypatch.setattr(ss, "get_schema_text", lambda force_refresh=False: "Table: players | Columns: name, ovr")
