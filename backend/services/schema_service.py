@@ -1,10 +1,11 @@
+import os
 from sqlalchemy import inspect
 from .db_service import get_engine
 from .logging_service import logger
 from models.response_models import SchemaResponse, TableSchema, ColumnSchema
 
 # Cache variable for text schema
-SCHEMA_CACHE_TEXT = None
+SCHEMA_CACHE_TEXT: str | None = None
 
 def get_schema_text(force_refresh: bool = False) -> str:
     """
@@ -12,7 +13,10 @@ def get_schema_text(force_refresh: bool = False) -> str:
     Uses cache unless force_refresh=True.
     """
     global SCHEMA_CACHE_TEXT
+
     if SCHEMA_CACHE_TEXT is None or force_refresh:
+        if not os.getenv("POSTGRESQL_URL"):
+            raise ValueError("POSTGRESQL_URL is not set")
         logger.info("Fetching database schema (text) from DB...")
         inspector = inspect(get_engine())
         schema_parts = []
@@ -20,6 +24,7 @@ def get_schema_text(force_refresh: bool = False) -> str:
             columns = [col["name"] for col in inspector.get_columns(table_name)]
             schema_parts.append(f"Table: {table_name} | Columns: {', '.join(columns)}")
         SCHEMA_CACHE_TEXT = "\n".join(schema_parts)
+
     return SCHEMA_CACHE_TEXT
 
 def get_schema_response(force_refresh: bool = False) -> SchemaResponse:
@@ -27,6 +32,8 @@ def get_schema_response(force_refresh: bool = False) -> SchemaResponse:
     Return DB schema as structured JSON for /schema endpoint.
     Always queries DB fresh if force_refresh=True.
     """
+    if not os.getenv("POSTGRESQL_URL"):
+        raise ValueError("POSTGRESQL_URL is not set")
     if force_refresh:
         logger.info("Refreshing database schema (JSON) from DB...")
     else:
@@ -34,8 +41,10 @@ def get_schema_response(force_refresh: bool = False) -> SchemaResponse:
     inspector = inspect(get_engine())
     schema_data = []
     for table_name in inspector.get_table_names():
-        columns = [ColumnSchema(name=col["name"], type=str(col["type"]))
-                   for col in inspector.get_columns(table_name)]
+        columns = [
+            ColumnSchema(name=col["name"], type=str(col["type"]))
+            for col in inspector.get_columns(table_name)
+        ]
         schema_data.append(TableSchema(name=table_name, columns=columns))
     return SchemaResponse(tables=schema_data)
 
