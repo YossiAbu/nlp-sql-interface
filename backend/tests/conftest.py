@@ -14,7 +14,7 @@ class FakeDBChain:
 
 @pytest.fixture(autouse=True)
 def mock_services(monkeypatch):
-    """Automatically mock external dependencies for tests."""
+    """Automatically mock AI chain and schema text for all tests."""
     import services.query_service as qs
     import services.schema_service as ss
 
