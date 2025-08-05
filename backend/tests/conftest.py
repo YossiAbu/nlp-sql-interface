@@ -23,5 +23,9 @@ def mock_services(monkeypatch):
         return FakeDBChain()
     monkeypatch.setattr(qs, "get_db_chain", fake_get_db_chain)
 
-    # Mock schema text
-    monkeypatch.setattr(ss, "get_schema_text", lambda force_refresh=False: "Table: players | Columns: name, ovr")
+    # Fake schema text
+    fake_schema_text = "Table: players | Columns: name, ovr"
+
+    # Patch both schema_service and query_service references
+    monkeypatch.setattr(ss, "get_schema_text", lambda force_refresh=False: fake_schema_text)
+    monkeypatch.setattr(qs, "get_schema_text", lambda force_refresh=False: fake_schema_text)
