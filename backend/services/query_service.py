@@ -1,5 +1,5 @@
 import ast
-import datetime
+from datetime import datetime
 import re
 import time
 from typing import Any, Dict, List
@@ -300,5 +300,5 @@ def handle_query(question: str) -> QueryResponse:
         raw_rows=formatted_rows,
         status="success",
         execution_time=execution_time,
-        created_date=datetime.utcnow()
+        created_date=datetime.utcnow(),
     )
