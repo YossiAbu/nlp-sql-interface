@@ -50,6 +50,7 @@ export default function QueryInterface() {
         execution_time: response.execution_time || executionTime,
         status: response.status || "success",
         error_message: response.error_message,
+        created_date: response.created_date || new Date().toISOString(),
       };
 
       setCurrentQuery(queryData);
@@ -63,6 +64,7 @@ export default function QueryInterface() {
         execution_time: Date.now() - startTime,
         status: "error",
         error_message: "Failed to process your question. Please try again.",
+        created_date: new Date().toISOString(),
       };
 
       setCurrentQuery(errorQuery);

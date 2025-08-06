@@ -6,4 +6,5 @@ export interface Query {
   execution_time: number;
   status: "success" | "error";
   error_message?: string;
+  created_date: string;
 }

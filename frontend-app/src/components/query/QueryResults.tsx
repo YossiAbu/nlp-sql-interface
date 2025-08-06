@@ -160,7 +160,9 @@ export default function QueryResults({ query, isLoading, userQuestion }: Props) 
                 <CardTitle>Answer</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>{query!.results}</p>
+                <pre className="whitespace-pre-wrap font-sans text-sm">
+                  {query!.results}
+                </pre>
               </CardContent>
             </Card>
           )}

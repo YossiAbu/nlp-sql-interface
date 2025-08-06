@@ -22,11 +22,18 @@ export default function QueryInput({ onSubmit, isLoading }: Props) {
   };
 
   const placeholderQuestions = [
-    "Show me all users who signed up last month",
-    "What are the top 5 products by revenue?",
-    "Find customers with more than 10 orders",
-    "Show monthly sales trends for 2024"
-  ];
+    "Show me the top 10 players by overall rating",
+    "List all players from Spain in the Premier League",
+    "Find the youngest player in the database",
+    "Show all goalkeepers with OVR above 85",
+    "List the top 5 fastest players by sprint speed",
+    "Show all players from Brazil sorted by dribbling",
+    "Find all players in LALIGA with OVR above 90",
+    "List the tallest players in each position",
+    "Show players who play for Manchester City",
+    "Find players with both high passing and high dribbling"
+];
+
 
   return (
     <motion.div
