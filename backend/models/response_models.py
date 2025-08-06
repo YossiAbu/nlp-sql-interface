@@ -8,6 +8,7 @@ class QueryResponse(BaseModel):
     status: str
     execution_time: int
     error_message: Optional[str] = None
+    created_date: datetime = datetime.utcnow()
 
 class ColumnSchema(BaseModel):
     name: str
