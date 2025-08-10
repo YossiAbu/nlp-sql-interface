@@ -25,7 +25,8 @@ export default function History() {
       try {
         const currentUser = await UserAPI.me();
         setUser(currentUser);
-        await loadQueries(currentUser);
+        if (currentUser)
+          await loadQueries(currentUser);
       } catch {
         setUser(null);
       }
@@ -46,7 +47,7 @@ export default function History() {
           id: "1",
           question: "Show me all users created this month",
           sql_query: "SELECT * FROM users WHERE created_at >= '2024-08-01'",
-          results: [{ id: 1, name: "Alice" }],
+          results: "",
           status: "success",
           execution_time: 120,
           created_date: new Date().toISOString()
@@ -55,7 +56,7 @@ export default function History() {
           id: "2",
           question: "List products with no stock",
           sql_query: "SELECT * FROM products WHERE stock = 0",
-          results: [],
+          results: "",
           status: "error",
           execution_time: 80,
           error_message: "Simulated error",
@@ -65,7 +66,7 @@ export default function History() {
           id: "3",
           question: "What are the top 5 best-selling products by revenue",
           sql_query: "SELECT p.name, p.price, SUM(oi.quantity) as total_sold, SUM(oi.quantity * p.price) as total_revenue FROM products p JOIN order_items oi ON p.id = oi.product_id GROUP BY p.id ORDER BY total_revenue DESC LIMIT 5;",
-          results: [],
+          results: "",
           status: "error",
           execution_time: 80,
           error_message: "Simulated error",

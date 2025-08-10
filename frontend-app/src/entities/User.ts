@@ -24,4 +24,23 @@ export const UserAPI = {
       full_name: data.full_name ?? "",
     };
   },
+
+  // ✅ Added login method
+  async login(): Promise<User | null> {
+    const res = await fetch("http://localhost:8000/login", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    
+    if (!data?.email) return null;
+
+    return {
+      email: data.email,
+      full_name: data.full_name ?? "",
+    };
+  },
 };

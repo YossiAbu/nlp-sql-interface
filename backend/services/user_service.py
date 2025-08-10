@@ -2,18 +2,13 @@
 import os
 from datetime import datetime
 from passlib.context import CryptContext
-from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, TIMESTAMP, select, Engine
+from sqlalchemy import Table, Column, Integer, String, MetaData, TIMESTAMP, select
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
+from .engine_factory import EngineFactory
 
 load_dotenv()
 
-# USERS_DB_URL = os.getenv("USERS_POSTGRESQL_URL")
-postgres_url: str | None = os.getenv("FC25_POSTGRESQL_URL")
-
-
-# engine = create_engine(USERS_DB_URL)
-_engine: Engine | None = None
 metadata = MetaData()
 
 users_table = Table(
@@ -28,18 +23,15 @@ users_table = Table(
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def get_engine() -> Engine:
-    """Return SQLAlchemy engine instance."""
-    global _engine
-    if _engine is None:
-        if not postgres_url:
-            raise ValueError("POSTGRESQL_URL is not set")
-        _engine = create_engine(postgres_url)
-    return _engine
+def get_engine():
+    """Return SQLAlchemy engine instance for users database."""
+    # ✅ Pass the environment variable NAME, not the value
+    return EngineFactory.get_engine("users_db", "USERS_POSTGRESQL_URL")
 
 def create_user(full_name: str, email: str, password: str):
+    engine = get_engine()
     hashed_pw = pwd_context.hash(password)
-    with _engine.connect() as conn:
+    with engine.connect() as conn:
         try:
             conn.execute(
                 users_table.insert().values(
@@ -51,10 +43,11 @@ def create_user(full_name: str, email: str, password: str):
             conn.commit()
             return True
         except IntegrityError:
-            return False  # Email already exists
+            return False
 
 def authenticate_user(email: str, password: str):
-    with _engine.connect() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         user = conn.execute(
             select(users_table).where(users_table.c.email == email)
         ).fetchone()
@@ -62,7 +55,6 @@ def authenticate_user(email: str, password: str):
         if not user:
             return None
 
-        # Convert Row to dict
         user_dict = dict(user._mapping)
 
         if not pwd_context.verify(password, user_dict["password_hash"]):
@@ -71,7 +63,8 @@ def authenticate_user(email: str, password: str):
         return user_dict
 
 def get_user_by_email(email: str):
-    with _engine.connect() as conn:
+    engine = get_engine()
+    with engine.connect() as conn:
         result = conn.execute(
             select(users_table).where(users_table.c.email == email)
         ).fetchone()
