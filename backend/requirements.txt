@@ -10,3 +10,4 @@ pytest-cov
 httpx
 python-dotenv
 email-validator>=2.1.0.post1
+passlib[bcrypt]>=1.7.4
