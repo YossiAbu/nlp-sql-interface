@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Database, Clock, Play, AlertCircle, Check, Copy, MessageSquare } from "lucide-react";
+import { Database, Clock, Play, AlertCircle, Check, Copy } from "lucide-react";
 import { format as formatDate } from "date-fns";
 import { format as formatSql } from "sql-formatter";
 import { Query } from "@/entities/Query";
@@ -24,9 +24,7 @@ export default function HistoryItem({ query, onRerun, index }: Props) {
 
   const handleRerun = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onRerun) {
-      onRerun(query);
-    }
+    onRerun?.(query);
   };
 
   const copyQuestion = async (e: React.MouseEvent) => {
@@ -46,11 +44,7 @@ export default function HistoryItem({ query, onRerun, index }: Props) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
       <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:bg-white/10 transition-all duration-200 cursor-pointer group">
         <CardContent className="">
           <div className="flex items-start justify-between gap-4">
@@ -66,11 +60,7 @@ export default function HistoryItem({ query, onRerun, index }: Props) {
                   onClick={copyQuestion}
                   className="absolute -top-1 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white hover:bg-slate-800/50 h-10 px-2"
                 >
-                  {copiedQuestion ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
+                  {copiedQuestion ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 </Button>
               </div>
 
@@ -92,19 +82,14 @@ export default function HistoryItem({ query, onRerun, index }: Props) {
                   </Badge>
                 )}
                 {query.execution_time !== undefined && (
-                  <Badge
-                    variant="outline"
-                    className="dark:text-slate-400 text-slate-600 border-slate-600 text-xs"
-                  >
+                  <Badge variant="outline" className="dark:text-slate-400 text-slate-600 border-slate-600 text-xs">
                     {query.execution_time}ms
                   </Badge>
                 )}
-                {query.results?.length > 0 && (
-                  <Badge
-                    variant="outline"
-                    className="dark:text-slate-400 text-slate-600 border-slate-600 text-xs"
-                  >
-                    {query.results.length} rows
+                {/* ✅ show count from raw_rows (not results string) */}
+                {query.raw_rows && query.raw_rows.length > 0 && (
+                  <Badge variant="outline" className="dark:text-slate-400 text-slate-600 border-slate-600 text-xs">
+                    {query.raw_rows.length} rows
                   </Badge>
                 )}
               </div>
@@ -138,11 +123,7 @@ export default function HistoryItem({ query, onRerun, index }: Props) {
                 onClick={copySql}
                 className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto w-auto text-slate-400 hover:text-white hover:bg-slate-800/50"
               >
-                {copiedSql ? (
-                  <Check className="w-3 h-3" />
-                ) : (
-                  <Copy className="w-3 h-3" />
-                )}
+                {copiedSql ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               </Button>
             </div>
           )}

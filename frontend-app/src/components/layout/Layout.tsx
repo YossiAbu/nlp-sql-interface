@@ -1,9 +1,9 @@
-import React, { useState, useEffect, ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect, ReactNode, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User as UserType } from "@/entities/User";
-import ThemeToggle from "./ThemeToggle"
-import { UserAPI } from "@/entities/User"; // <- Make sure this exists as the actual API methods
+import ThemeToggle from "./ThemeToggle";
+import { UserAPI } from "@/entities/User";
 import {
   Database,
   History,
@@ -28,39 +28,63 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-// ✅ Add prop types
 interface LayoutProps {
   children: ReactNode;
   currentPageName?: string;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const location = useLocation();
+  const hasFetchedUser = useRef(false);
+  const navigate = useNavigate();
   const [user, setUser] = useState<UserType | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentUser = await UserAPI.me(); // ✅ API call
-        setUser(currentUser);
-      } catch {
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchUser();
-  }, [location.key]);
+  const fetchUser = async () => {
+    try {
+      const currentUser = await UserAPI.me(); // null if anonymous
+      setUser(currentUser);
+    } catch (err) {
+      console.error(err);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleLogin = async () => {
-    await UserAPI.login();
-    window.location.reload();
+  // Initial load
+  useEffect(() => {
+    if (hasFetchedUser.current) return;
+    hasFetchedUser.current = true;
+    fetchUser();
+  }, []);
+
+  // 🔔 Listen to global auth changes (login/logout) and re-fetch /me
+  useEffect(() => {
+    const handler = () => fetchUser();
+    window.addEventListener("auth:changed", handler);
+    return () => window.removeEventListener("auth:changed", handler);
+  }, []);
+
+  const handleLogin = () => {
+    navigate("/login");
   };
 
   const handleLogout = async () => {
-    await UserAPI.logout();
+    try {
+      await fetch("http://localhost:8000/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // ignore network errors
+    }
+    localStorage.removeItem("user_email");
     setUser(null);
+
+    // 🔔 notify other parts of the app
+    window.dispatchEvent(new Event("auth:changed"));
+
+    navigate("/login");
   };
 
   return (
@@ -101,22 +125,21 @@ export default function Layout({ children }: LayoutProps) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  {user && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        className="hover:bg-[color:oklch(0.85_0.01_265)] hover:text-[var(--sidebar-foreground)] transition-all duration-200 rounded-lg mb-1 text-[var(--sidebar-foreground)]"
+                  {/* 👇 Always show My History in nav (route is still protected) */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      className="hover:bg-[color:oklch(0.85_0.01_265)] hover:text-[var(--sidebar-foreground)] transition-all duration-200 rounded-lg mb-1 text-[var(--sidebar-foreground)]"
+                    >
+                      <Link
+                        to={createPageUrl("history")}
+                        className="flex items-center gap-3 px-3 py-3"
                       >
-                        <Link
-                          to={createPageUrl("history")}
-                          className="flex items-center gap-3 px-3 py-3"
-                        >
-                          <History className="w-5 h-5" />
-                          <span className="font-medium">My History</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
+                        <History className="w-5 h-5" />
+                        <span className="font-medium">My History</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -129,7 +152,7 @@ export default function Layout({ children }: LayoutProps) {
           <SidebarFooter className="border-t border-[var(--sidebar-border)] p-4">
             {isLoading ? (
               <div className="h-10 w-full bg-[color:oklch(0.85_0.01_265)] rounded-lg animate-pulse" />
-            ) : user ? (
+            ) : user?.email ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 bg-gradient-to-tr from-cyan-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold">
@@ -167,10 +190,8 @@ export default function Layout({ children }: LayoutProps) {
           </SidebarFooter>
         </Sidebar>
 
-
         <main className="flex-1 flex flex-col bg-[var(--background)] text-[var(--foreground)]">
           <header className="bg-[var(--card)] border-b border-[var(--border)] text-[var(--foreground)] px-6 py-4 md:hidden">
-
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-slate-800/50 p-2 rounded-lg transition-colors duration-200 text-white" />
               <h1 className="text-xl font-bold text-white">QueryMind</h1>

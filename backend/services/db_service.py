@@ -6,7 +6,7 @@ from langchain.utilities import SQLDatabase
 load_dotenv()
 
 openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
-postgres_url: str | None = os.getenv("POSTGRESQL_URL")
+postgres_url: str | None = os.getenv("FC25_POSTGRESQL_URL")
 
 _engine: Engine | None = None
 _db: SQLDatabase | None = None
