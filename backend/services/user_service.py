@@ -2,15 +2,18 @@
 import os
 from datetime import datetime
 from passlib.context import CryptContext
-from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, TIMESTAMP, select
+from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, TIMESTAMP, select, Engine
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 
 load_dotenv()
 
-USERS_DB_URL = os.getenv("USERS_POSTGRESQL_URL")
+# USERS_DB_URL = os.getenv("USERS_POSTGRESQL_URL")
+postgres_url: str | None = os.getenv("FC25_POSTGRESQL_URL")
 
-engine = create_engine(USERS_DB_URL)
+
+# engine = create_engine(USERS_DB_URL)
+_engine: Engine | None = None
 metadata = MetaData()
 
 users_table = Table(
@@ -25,9 +28,18 @@ users_table = Table(
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def get_engine() -> Engine:
+    """Return SQLAlchemy engine instance."""
+    global _engine
+    if _engine is None:
+        if not postgres_url:
+            raise ValueError("POSTGRESQL_URL is not set")
+        _engine = create_engine(postgres_url)
+    return _engine
+
 def create_user(full_name: str, email: str, password: str):
     hashed_pw = pwd_context.hash(password)
-    with engine.connect() as conn:
+    with _engine.connect() as conn:
         try:
             conn.execute(
                 users_table.insert().values(
@@ -42,7 +54,7 @@ def create_user(full_name: str, email: str, password: str):
             return False  # Email already exists
 
 def authenticate_user(email: str, password: str):
-    with engine.connect() as conn:
+    with _engine.connect() as conn:
         user = conn.execute(
             select(users_table).where(users_table.c.email == email)
         ).fetchone()
@@ -59,7 +71,7 @@ def authenticate_user(email: str, password: str):
         return user_dict
 
 def get_user_by_email(email: str):
-    with engine.connect() as conn:
+    with _engine.connect() as conn:
         result = conn.execute(
             select(users_table).where(users_table.c.email == email)
         ).fetchone()
