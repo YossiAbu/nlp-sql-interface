@@ -12,15 +12,14 @@ _db: SQLDatabase | None = None
 
 def get_engine():
     """Return SQLAlchemy engine instance for main database."""
-    # ✅ Pass the environment variable NAME, not the value
-    return EngineFactory.get_engine("main_db", "FC25_POSTGRESQL_URL")
+    return EngineFactory.get_engine("main_db", "DATABASE_URL")
 
 def get_db() -> SQLDatabase:
     """Return LangChain SQLDatabase instance."""
     global _db
     if _db is None:
-        postgres_url = os.getenv("FC25_POSTGRESQL_URL")
+        postgres_url = os.getenv("DATABASE_URL")
         if not postgres_url:
-            raise ValueError("FC25_POSTGRESQL_URL is not set")
+            raise ValueError("DATABASE_URL is not set")
         _db = SQLDatabase.from_uri(postgres_url)
     return _db

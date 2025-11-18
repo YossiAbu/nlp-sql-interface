@@ -15,8 +15,8 @@ def get_schema_text(force_refresh: bool = False) -> str:
     global SCHEMA_CACHE_TEXT
 
     if SCHEMA_CACHE_TEXT is None or force_refresh:
-        if not os.getenv("FC25_POSTGRESQL_URL"):
-            raise ValueError("POSTGRESQL_URL is not set")
+        if not os.getenv("DATABASE_URL"):
+            raise ValueError("DATABASE_URL is not set")
         logger.info("Fetching database schema (text) from DB...")
         inspector = inspect(get_engine())
         schema_parts = []
@@ -32,8 +32,8 @@ def get_schema_response(force_refresh: bool = False) -> SchemaResponse:
     Return DB schema as structured JSON for /schema endpoint.
     Always queries DB fresh if force_refresh=True.
     """
-    if not os.getenv("FC25_POSTGRESQL_URL"):
-        raise ValueError("POSTGRESQL_URL is not set")
+    if not os.getenv("DATABASE_URL"):
+        raise ValueError("DATABASE_URL is not set")
     if force_refresh:
         logger.info("Refreshing database schema (JSON) from DB...")
     else:

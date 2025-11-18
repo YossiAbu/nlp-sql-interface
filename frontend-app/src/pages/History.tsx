@@ -112,7 +112,7 @@ export default function History() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="min-h-screen bg-surface text-body p-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -124,7 +124,7 @@ export default function History() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-surface p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-surface text-body p-4 flex items-center justify-center">
         <div className="text-center">
           <HistoryIcon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">View Your Query History</h2>
@@ -139,7 +139,7 @@ export default function History() {
   }
 
   return (
-    <div className="min-h-screen surface-gradient p-4">
+    <div className="min-h-screen bg-surface text-body p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

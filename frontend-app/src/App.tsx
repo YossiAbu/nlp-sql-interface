@@ -41,7 +41,11 @@ const App = () => {
           />
 
           {/* Redirect root to interface */}
-          <Route path="/" element={<Navigate to="/interface" replace />} />
+          <Route path="/" element={
+            localStorage.getItem("user_email") 
+              ? <Navigate to="/interface" replace /> 
+              : <Navigate to="/login" replace />
+          } />
 
           {/* Fallback redirect for unknown paths */}
           <Route path="*" element={<Navigate to="/" replace />} />

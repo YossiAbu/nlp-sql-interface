@@ -1,8 +1,9 @@
 # services/user_service.py
 import os
+import uuid
 from datetime import datetime
 from passlib.context import CryptContext
-from sqlalchemy import Table, Column, Integer, String, MetaData, TIMESTAMP, select
+from sqlalchemy import Table, Column, String, MetaData, TIMESTAMP, select
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 from .engine_factory import EngineFactory
@@ -14,7 +15,7 @@ metadata = MetaData()
 users_table = Table(
     "users",
     metadata,
-    Column("id", Integer, primary_key=True),
+    Column("id", String, primary_key=True),
     Column("full_name", String, nullable=False),
     Column("email", String, nullable=False, unique=True),
     Column("password_hash", String, nullable=False),
@@ -25,16 +26,17 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_engine():
     """Return SQLAlchemy engine instance for users database."""
-    # ✅ Pass the environment variable NAME, not the value
-    return EngineFactory.get_engine("users_db", "USERS_POSTGRESQL_URL")
+    return EngineFactory.get_engine("nlp_sql_db", "DATABASE_URL")
 
 def create_user(full_name: str, email: str, password: str):
     engine = get_engine()
     hashed_pw = pwd_context.hash(password)
+    user_id = str(uuid.uuid4())
     with engine.connect() as conn:
         try:
             conn.execute(
                 users_table.insert().values(
+                    id=user_id,
                     full_name=full_name,
                     email=email,
                     password_hash=hashed_pw

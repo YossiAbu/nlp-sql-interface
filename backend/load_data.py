@@ -1,13 +1,16 @@
+from typing import Hashable
+
+
 import pandas as pd
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
-postgres_url: str | None = os.getenv("POSTGRESQL_URL")
+postgres_url: str | None = os.getenv("DATABASE_URL")
 
 df = pd.read_csv("./data/male_players.csv")
-df.drop(list(df.columns[:2]), axis=1, inplace=True)
+df.drop(list[Hashable](df.columns[:2]), axis=1, inplace=True)
 
 df.fillna(
     value={
