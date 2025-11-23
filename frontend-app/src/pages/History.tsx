@@ -42,40 +42,12 @@ export default function History() {
   const loadQueries = async (currentUser: User) => {
     if (!currentUser) return;
     try {
-      const dummyQueries: QueryType[] = [
-        {
-          id: "1",
-          question: "Show me all users created this month",
-          sql_query: "SELECT * FROM users WHERE created_at >= '2024-08-01'",
-          results: "",
-          status: "success",
-          execution_time: 120,
-          created_date: new Date().toISOString()
-        },
-        {
-          id: "2",
-          question: "List products with no stock",
-          sql_query: "SELECT * FROM products WHERE stock = 0",
-          results: "",
-          status: "error",
-          execution_time: 80,
-          error_message: "Simulated error",
-          created_date: new Date().toISOString()
-        },
-        {
-          id: "3",
-          question: "What are the top 5 best-selling products by revenue",
-          sql_query: "SELECT p.name, p.price, SUM(oi.quantity) as total_sold, SUM(oi.quantity * p.price) as total_revenue FROM products p JOIN order_items oi ON p.id = oi.product_id GROUP BY p.id ORDER BY total_revenue DESC LIMIT 5;",
-          results: "",
-          status: "error",
-          execution_time: 80,
-          error_message: "Simulated error",
-          created_date: new Date().toISOString()
-        }
-      ];
-      setQueries(dummyQueries);
+      const { fetchHistory } = await import("@/lib/api");
+      const historyData = await fetchHistory(1, 100);
+      setQueries(historyData.items);
     } catch (error) {
       console.error("Error loading queries:", error);
+      setQueries([]);
     }
   };
 
@@ -102,7 +74,17 @@ export default function History() {
   };
 
   const clearHistory = async () => {
-    alert("This demo does not support real history clearing.");
+    if (!confirm("Are you sure you want to clear all your query history? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      const { clearHistory: clearHistoryAPI } = await import("@/lib/api");
+      await clearHistoryAPI();
+      setQueries([]);
+    } catch (error) {
+      console.error("Error clearing history:", error);
+      alert("Failed to clear history. Please try again.");
+    }
   };
 
   const handleLogin = async () => {

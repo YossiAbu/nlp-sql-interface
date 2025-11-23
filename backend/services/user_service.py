@@ -71,3 +71,11 @@ def get_user_by_email(email: str):
             select(users_table).where(users_table.c.email == email)
         ).fetchone()
         return dict(result._mapping) if result else None
+
+def get_user_by_id(user_id: str):
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(
+            select(users_table).where(users_table.c.id == user_id)
+        ).fetchone()
+        return dict(result._mapping) if result else None
