@@ -1,6 +1,32 @@
+# backend/tests/conftest.py
+import os
 import pytest
 from typing import Any, Dict
+from dotenv import load_dotenv
 
+# ============================================
+# Load Test Environment Variables
+# ============================================
+# This automatically loads .env.test when running tests
+# so we use the test database instead of production
+test_env_path = os.path.join(os.path.dirname(__file__), '..', '.env.test')
+if os.path.exists(test_env_path):
+    load_dotenv(test_env_path, override=True)
+
+
+# ============================================
+# Register Custom Pytest Markers
+# ============================================
+def pytest_configure(config):
+    """Register custom markers to avoid warnings."""
+    config.addinivalue_line(
+        "markers", "no_mock: Skip automatic mocking fixtures for real database tests"
+    )
+
+
+# ============================================
+# Mock Services Fixture
+# ============================================
 class FakeDBChain:
     """Fake AI chain that always returns the same SQL and result."""
     def invoke(self, prompt: str) -> Dict[str, Any]:
@@ -12,9 +38,14 @@ class FakeDBChain:
             ]
         }
 
+
 @pytest.fixture(autouse=True)
-def mock_services(monkeypatch):
+def mock_services(request, monkeypatch):
     """Automatically mock AI chain and schema for all tests."""
+    
+    if 'no_mock' in request.keywords:
+        return  # Skip mocking for tests marked with @pytest.mark.no_mock
+
     import services.query_service as qs
     import services.schema_service as ss
     import main

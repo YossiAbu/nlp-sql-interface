@@ -1,5 +1,7 @@
 .env
+.env.test
 stam.py
+
 
 __pycache__/
 data/
