@@ -7,11 +7,23 @@ from dotenv import load_dotenv
 # ============================================
 # Load Test Environment Variables
 # ============================================
-# This automatically loads .env.test when running tests
-# so we use the test database instead of production
 test_env_path = os.path.join(os.path.dirname(__file__), '..', '.env.test')
 if os.path.exists(test_env_path):
     load_dotenv(test_env_path, override=True)
+
+
+# ============================================
+# Initialize Database Tables Before Tests
+# ============================================
+def pytest_sessionstart(session):
+    """Create all database tables before any tests run."""
+    from services.db_service import init_db
+    from services.user_service import users_table, metadata, get_engine
+    
+    # Create all tables (including users table)
+    engine = get_engine()
+    metadata.create_all(engine)
+    init_db()
 
 
 # ============================================
