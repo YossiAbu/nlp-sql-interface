@@ -20,7 +20,6 @@ def pytest_sessionstart(session):
     from services.db_service import init_db
     from services.user_service import users_table, metadata, get_engine
     
-    # Create all tables (including users table)
     engine = get_engine()
     metadata.create_all(engine)
     init_db()
@@ -34,6 +33,21 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "no_mock: Skip automatic mocking fixtures for real database tests"
     )
+    config.addinivalue_line(
+        "markers", "real_db: Tests that require a populated real database (skipped in CI)"
+    )
+
+
+# ============================================
+# Auto-Skip Real DB Tests in CI
+# ============================================
+def pytest_collection_modifyitems(config, items):
+    """Automatically skip real_db tests when running in CI."""
+    if os.getenv("CI") == "true":
+        skip_ci = pytest.mark.skip(reason="Skipping real DB test in CI - requires populated database")
+        for item in items:
+            if "real_db" in item.keywords:
+                item.add_marker(skip_ci)
 
 
 # ============================================

@@ -3,8 +3,9 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from main import app
 
-# Mark to skip the autouse fixture
-pytestmark = pytest.mark.no_mock
+# Use both markers: no_mock (use real services) + real_db (auto-skip in CI)
+pytestmark = [pytest.mark.no_mock, pytest.mark.real_db]
+
 
 @pytest.mark.asyncio
 async def test_query_with_real_database():
