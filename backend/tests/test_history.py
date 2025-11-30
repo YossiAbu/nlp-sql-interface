@@ -357,3 +357,158 @@ class TestHistoryEntryStructure:
             assert entry["question"] == "Test question"
             assert entry["status"] == "success"
             assert entry["sql_query"] == "SELECT * FROM players LIMIT 5"
+
+
+# ============================================
+# HistoryService Unit Tests (Direct DB Access)
+# ============================================
+
+def create_history_entry_and_get_id(user_id: str, question: str = "Test question") -> str:
+    """Helper to create a history entry and return its ID."""
+    db = get_session()
+    try:
+        history_data = HistoryCreate(
+            question=question,
+            sql_query="SELECT * FROM players LIMIT 5",
+            status="success",
+            execution_time=100,
+            results="Test results",
+            raw_rows=[{"name": "Test", "ovr": 90}],
+            error_message=None
+        )
+        entry = HistoryService.create_history_entry(db, user_id, history_data)
+        return entry.id
+    finally:
+        db.close()
+
+
+class TestHistoryServiceGetById:
+    """Tests for HistoryService.get_history_by_id method."""
+    
+    @pytest.mark.asyncio
+    async def test_returns_entry_when_found(self):
+        """Test get_history_by_id returns the entry when it exists."""
+        transport, base_url = get_test_client(app)
+        async with AsyncClient(transport=transport, base_url=base_url) as ac:
+            cookies = await register_and_login(ac)
+            user_id = get_user_id_from_cookies(cookies)
+        
+        # Create entry and get its ID
+        entry_id = create_history_entry_and_get_id(user_id, "Find me")
+        
+        # Retrieve it using the service
+        db = get_session()
+        try:
+            found = HistoryService.get_history_by_id(db, entry_id, user_id)
+            assert found is not None
+            assert found.question == "Find me"
+            assert found.id == entry_id
+        finally:
+            db.close()
+    
+    @pytest.mark.asyncio
+    async def test_returns_none_when_not_found(self):
+        """Test get_history_by_id returns None for non-existent entry."""
+        transport, base_url = get_test_client(app)
+        async with AsyncClient(transport=transport, base_url=base_url) as ac:
+            cookies = await register_and_login(ac)
+            user_id = get_user_id_from_cookies(cookies)
+        
+        db = get_session()
+        try:
+            result = HistoryService.get_history_by_id(db, "non-existent-id", user_id)
+            assert result is None
+        finally:
+            db.close()
+    
+    @pytest.mark.asyncio
+    async def test_returns_none_for_other_users_entry(self):
+        """Test get_history_by_id returns None when accessing another user's entry."""
+        transport, base_url = get_test_client(app)
+        async with AsyncClient(transport=transport, base_url=base_url) as ac:
+            # Create two users
+            cookies1 = await register_and_login(ac, "User One", "user1@example.com", "Pass123!")
+            user1_id = get_user_id_from_cookies(cookies1)
+            
+            cookies2 = await register_and_login(ac, "User Two", "user2@example.com", "Pass123!")
+            user2_id = get_user_id_from_cookies(cookies2)
+        
+        # Create entry for user1
+        entry_id = create_history_entry_and_get_id(user1_id, "User1 private query")
+        
+        # User2 should not be able to access it
+        db = get_session()
+        try:
+            result = HistoryService.get_history_by_id(db, entry_id, user2_id)
+            assert result is None
+        finally:
+            db.close()
+
+
+class TestHistoryServiceDeleteEntry:
+    """Tests for HistoryService.delete_history_entry method."""
+    
+    @pytest.mark.asyncio
+    async def test_deletes_own_entry_successfully(self):
+        """Test delete_history_entry returns True and deletes the entry."""
+        transport, base_url = get_test_client(app)
+        async with AsyncClient(transport=transport, base_url=base_url) as ac:
+            cookies = await register_and_login(ac)
+            user_id = get_user_id_from_cookies(cookies)
+        
+        # Create entry
+        entry_id = create_history_entry_and_get_id(user_id, "To be deleted")
+        
+        db = get_session()
+        try:
+            # Delete it
+            result = HistoryService.delete_history_entry(db, entry_id, user_id)
+            assert result is True
+            
+            # Verify it's gone
+            found = HistoryService.get_history_by_id(db, entry_id, user_id)
+            assert found is None
+        finally:
+            db.close()
+    
+    @pytest.mark.asyncio
+    async def test_returns_false_for_nonexistent_entry(self):
+        """Test delete_history_entry returns False for non-existent entry."""
+        transport, base_url = get_test_client(app)
+        async with AsyncClient(transport=transport, base_url=base_url) as ac:
+            cookies = await register_and_login(ac)
+            user_id = get_user_id_from_cookies(cookies)
+        
+        db = get_session()
+        try:
+            result = HistoryService.delete_history_entry(db, "non-existent-id", user_id)
+            assert result is False
+        finally:
+            db.close()
+    
+    @pytest.mark.asyncio
+    async def test_cannot_delete_other_users_entry(self):
+        """Test delete_history_entry returns False when trying to delete another user's entry."""
+        transport, base_url = get_test_client(app)
+        async with AsyncClient(transport=transport, base_url=base_url) as ac:
+            # Create two users
+            cookies1 = await register_and_login(ac, "User One", "user1@example.com", "Pass123!")
+            user1_id = get_user_id_from_cookies(cookies1)
+            
+            cookies2 = await register_and_login(ac, "User Two", "user2@example.com", "Pass123!")
+            user2_id = get_user_id_from_cookies(cookies2)
+        
+        # Create entry for user1
+        entry_id = create_history_entry_and_get_id(user1_id, "User1 entry")
+        
+        db = get_session()
+        try:
+            # User2 tries to delete it - should fail
+            result = HistoryService.delete_history_entry(db, entry_id, user2_id)
+            assert result is False
+            
+            # Entry should still exist for user1
+            found = HistoryService.get_history_by_id(db, entry_id, user1_id)
+            assert found is not None
+        finally:
+            db.close()
