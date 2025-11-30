@@ -1,8 +1,9 @@
 # backend/tests/test_auth.py
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient
 from main import app
 from services.user_service import users_table, get_engine
+from . import make_user_payload, make_login_payload, get_test_client
 
 # Mark all tests in this file to skip mocking (use real DB for auth)
 pytestmark = pytest.mark.no_mock
@@ -13,13 +14,11 @@ def setup_and_cleanup_users():
     """Clean up users table before and after each test."""
     engine = get_engine()
     with engine.connect() as conn:
-        # Clean up before test
         conn.execute(users_table.delete())
         conn.commit()
     
     yield  # Run the test
     
-    # Clean up after test
     with engine.connect() as conn:
         conn.execute(users_table.delete())
         conn.commit()
@@ -32,13 +31,9 @@ def setup_and_cleanup_users():
 @pytest.mark.asyncio
 async def test_register_user_success():
     """Test successful user registration."""
-    payload = {
-        "full_name": "John Doe",
-        "email": "john@example.com",
-        "password": "SecurePass123!"
-    }
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    payload = make_user_payload("John Doe", "john@example.com", "SecurePass123!")
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.post("/register", json=payload)
     
     assert response.status_code == 200
@@ -49,17 +44,10 @@ async def test_register_user_success():
 @pytest.mark.asyncio
 async def test_register_duplicate_email():
     """Test registration with duplicate email fails."""
-    payload = {
-        "full_name": "John Doe",
-        "email": "john@example.com",
-        "password": "SecurePass123!"
-    }
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Register first user
+    payload = make_user_payload("John Doe", "john@example.com", "SecurePass123!")
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         await ac.post("/register", json=payload)
-        
-        # Try to register again with same email
         response = await ac.post("/register", json=payload)
     
     assert response.status_code == 400
@@ -70,15 +58,12 @@ async def test_register_duplicate_email():
 @pytest.mark.asyncio
 async def test_register_missing_fields():
     """Test registration with missing required fields."""
-    payload = {
-        "email": "john@example.com"
-        # Missing full_name and password
-    }
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    payload = {"email": "john@example.com"}
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.post("/register", json=payload)
     
-    assert response.status_code == 422  # Validation error
+    assert response.status_code == 422
 
 
 # ============================================
@@ -88,54 +73,32 @@ async def test_register_missing_fields():
 @pytest.mark.asyncio
 async def test_login_success():
     """Test successful login with valid credentials."""
-    # First register a user
-    register_payload = {
-        "full_name": "Jane Smith",
-        "email": "jane@example.com",
-        "password": "MyPassword123!"
-    }
-    login_payload = {
-        "email": "jane@example.com",
-        "password": "MyPassword123!"
-    }
+    email, password = "jane@example.com", "MyPassword123!"
+    register_payload = make_user_payload("Jane Smith", email, password)
+    login_payload = make_login_payload(email, password)
     
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Register
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         await ac.post("/register", json=register_payload)
-        
-        # Login
         response = await ac.post("/login", json=login_payload)
     
     assert response.status_code == 200
     data = response.json()
     assert data["message"] == "Login successful"
     assert data["full_name"] == "Jane Smith"
-    
-    # Check that cookie is set
     assert "user_id" in response.cookies
 
 
 @pytest.mark.asyncio
 async def test_login_wrong_password():
     """Test login fails with wrong password."""
-    # First register a user
-    register_payload = {
-        "full_name": "Jane Smith",
-        "email": "jane@example.com",
-        "password": "CorrectPassword123!"
-    }
-    login_payload = {
-        "email": "jane@example.com",
-        "password": "WrongPassword123!"
-    }
+    email = "jane@example.com"
+    register_payload = make_user_payload("Jane Smith", email, "CorrectPassword123!")
+    login_payload = make_login_payload(email, "WrongPassword123!")
     
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Register
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         await ac.post("/register", json=register_payload)
-        
-        # Try to login with wrong password
         response = await ac.post("/login", json=login_payload)
     
     assert response.status_code == 401
@@ -146,13 +109,10 @@ async def test_login_wrong_password():
 @pytest.mark.asyncio
 async def test_login_nonexistent_user():
     """Test login fails for non-existent user."""
-    login_payload = {
-        "email": "nonexistent@example.com",
-        "password": "SomePassword123!"
-    }
+    login_payload = make_login_payload("nonexistent@example.com", "SomePassword123!")
     
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.post("/login", json=login_payload)
     
     assert response.status_code == 401
@@ -163,15 +123,12 @@ async def test_login_nonexistent_user():
 @pytest.mark.asyncio
 async def test_login_missing_fields():
     """Test login with missing required fields."""
-    payload = {
-        "email": "test@example.com"
-        # Missing password
-    }
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    payload = {"email": "test@example.com"}
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.post("/login", json=payload)
     
-    assert response.status_code == 422  # Validation error
+    assert response.status_code == 422
 
 
 # ============================================
@@ -181,8 +138,8 @@ async def test_login_missing_fields():
 @pytest.mark.asyncio
 async def test_logout_success():
     """Test logout returns success response."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.post("/logout")
     
     assert response.status_code == 200
@@ -197,27 +154,16 @@ async def test_logout_success():
 @pytest.mark.asyncio
 async def test_get_me_authenticated():
     """Test /me returns user info when authenticated."""
-    # Register and login
-    register_payload = {
-        "full_name": "Alice Johnson",
-        "email": "alice@example.com",
-        "password": "AlicePass123!"
-    }
-    login_payload = {
-        "email": "alice@example.com",
-        "password": "AlicePass123!"
-    }
+    email, password = "alice@example.com", "AlicePass123!"
+    register_payload = make_user_payload("Alice Johnson", email, password)
+    login_payload = make_login_payload(email, password)
     
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Register and login
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         await ac.post("/register", json=register_payload)
         login_response = await ac.post("/login", json=login_payload)
-        
-        # Get cookies from login
         cookies = login_response.cookies
         
-        # Call /me with authentication
         response = await ac.get("/me", cookies=cookies)
     
     assert response.status_code == 200
@@ -229,8 +175,8 @@ async def test_get_me_authenticated():
 @pytest.mark.asyncio
 async def test_get_me_not_authenticated():
     """Test /me returns null values when not authenticated."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.get("/me")
     
     assert response.status_code == 200
@@ -246,27 +192,16 @@ async def test_get_me_not_authenticated():
 @pytest.mark.asyncio
 async def test_protected_route_with_auth():
     """Test protected route accessible with authentication."""
-    # Register and login
-    register_payload = {
-        "full_name": "Bob Wilson",
-        "email": "bob@example.com",
-        "password": "BobPass123!"
-    }
-    login_payload = {
-        "email": "bob@example.com",
-        "password": "BobPass123!"
-    }
+    email, password = "bob@example.com", "BobPass123!"
+    register_payload = make_user_payload("Bob Wilson", email, password)
+    login_payload = make_login_payload(email, password)
     
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Register and login
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         await ac.post("/register", json=register_payload)
         login_response = await ac.post("/login", json=login_payload)
-        
-        # Get cookies from login
         cookies = login_response.cookies
         
-        # Access protected route
         response = await ac.get("/protected", cookies=cookies)
     
     assert response.status_code == 200
@@ -277,8 +212,8 @@ async def test_protected_route_with_auth():
 @pytest.mark.asyncio
 async def test_protected_route_without_auth():
     """Test protected route blocked without authentication."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.get("/protected")
     
     assert response.status_code == 401
@@ -295,18 +230,14 @@ async def test_password_is_hashed():
     """Test that passwords are hashed in database, not stored in plain text."""
     from services.user_service import get_user_by_email
     
-    register_payload = {
-        "full_name": "Charlie Brown",
-        "email": "charlie@example.com",
-        "password": "PlainTextPassword123!"
-    }
+    email, password = "charlie@example.com", "PlainTextPassword123!"
+    register_payload = make_user_payload("Charlie Brown", email, password)
     
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         await ac.post("/register", json=register_payload)
     
-    # Verify password is hashed in DB
-    user = get_user_by_email("charlie@example.com")
+    user = get_user_by_email(email)
     assert user is not None
-    assert user["password_hash"] != "PlainTextPassword123!"  # Should be hashed
-    assert user["password_hash"].startswith("$2b$")  # bcrypt hash prefix
+    assert user["password_hash"] != password
+    assert user["password_hash"].startswith("$2b$")

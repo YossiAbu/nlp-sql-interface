@@ -1,13 +1,14 @@
 # backend/tests/test_history.py
 """Tests for history endpoints and functionality."""
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient
 from main import app
 from services.user_service import users_table, get_engine
 from services.history_service import HistoryService
 from schemas.history import HistoryCreate
 from models.history import History
 from services.db_service import get_session
+from . import make_user_payload, make_login_payload, get_test_client
 
 # Mark all tests to skip mocking (use real DB)
 pytestmark = pytest.mark.no_mock
@@ -45,17 +46,15 @@ def setup_and_cleanup():
         conn.commit()
 
 
-async def register_and_login(ac: AsyncClient) -> dict:
-    """Helper to register and login a user, returns cookies and user_id."""
-    register_payload = {
-        "full_name": "Test User",
-        "email": "testuser@example.com",
-        "password": "TestPass123!"
-    }
-    login_payload = {
-        "email": "testuser@example.com",
-        "password": "TestPass123!"
-    }
+async def register_and_login(
+    ac: AsyncClient,
+    full_name: str = "Test User",
+    email: str = "testuser@example.com",
+    password: str = "TestPass123!"
+) -> dict:
+    """Helper to register and login a user, returns cookies."""
+    register_payload = make_user_payload(full_name, email, password)
+    login_payload = make_login_payload(email, password)
     
     await ac.post("/register", json=register_payload)
     login_response = await ac.post("/login", json=login_payload)
@@ -92,8 +91,8 @@ def get_user_id_from_cookies(cookies) -> str:
 @pytest.mark.asyncio
 async def test_get_history_unauthenticated():
     """Test that /history returns 401 when not authenticated."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.get("/history")
     
     assert response.status_code == 401
@@ -104,8 +103,8 @@ async def test_get_history_unauthenticated():
 @pytest.mark.asyncio
 async def test_get_history_empty():
     """Test that /history returns empty list for new user."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         cookies = await register_and_login(ac)
         
         response = await ac.get("/history", cookies=cookies)
@@ -121,15 +120,13 @@ async def test_get_history_empty():
 @pytest.mark.asyncio
 async def test_get_history_with_entries():
     """Test that /history returns user's query history."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         cookies = await register_and_login(ac)
         user_id = get_user_id_from_cookies(cookies)
         
-        # Insert history directly (no OpenAI call)
         create_fake_history_entry(user_id, "Show all players")
         
-        # Get history
         response = await ac.get("/history", cookies=cookies)
     
     assert response.status_code == 200
@@ -137,7 +134,6 @@ async def test_get_history_with_entries():
     assert data["total"] == 1
     assert len(data["items"]) == 1
     
-    # Verify history entry structure
     entry = data["items"][0]
     assert entry["question"] == "Show all players"
     assert "id" in entry
@@ -149,16 +145,14 @@ async def test_get_history_with_entries():
 @pytest.mark.asyncio
 async def test_get_history_pagination():
     """Test that /history pagination works correctly."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         cookies = await register_and_login(ac)
         user_id = get_user_id_from_cookies(cookies)
         
-        # Insert multiple history entries directly
         for i in range(5):
             create_fake_history_entry(user_id, f"Query number {i}")
         
-        # Get first page with 2 items
         response = await ac.get("/history?page=1&per_page=2", cookies=cookies)
         data = response.json()
         
@@ -169,7 +163,6 @@ async def test_get_history_pagination():
         assert data["per_page"] == 2
         assert data["total_pages"] == 3
         
-        # Get second page
         response2 = await ac.get("/history?page=2&per_page=2", cookies=cookies)
         data2 = response2.json()
         
@@ -181,46 +174,23 @@ async def test_get_history_pagination():
 @pytest.mark.asyncio
 async def test_get_history_only_own_entries():
     """Test that users can only see their own history."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # User 1: register, login
-        await ac.post("/register", json={
-            "full_name": "User One",
-            "email": "user1@example.com",
-            "password": "Pass123!"
-        })
-        login1 = await ac.post("/login", json={
-            "email": "user1@example.com",
-            "password": "Pass123!"
-        })
-        cookies1 = login1.cookies
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
+        cookies1 = await register_and_login(ac, "User One", "user1@example.com", "Pass123!")
         user1_id = get_user_id_from_cookies(cookies1)
         
-        # User 2: register, login
-        await ac.post("/register", json={
-            "full_name": "User Two",
-            "email": "user2@example.com",
-            "password": "Pass123!"
-        })
-        login2 = await ac.post("/login", json={
-            "email": "user2@example.com",
-            "password": "Pass123!"
-        })
-        cookies2 = login2.cookies
+        cookies2 = await register_and_login(ac, "User Two", "user2@example.com", "Pass123!")
         user2_id = get_user_id_from_cookies(cookies2)
         
-        # Insert history for each user
         create_fake_history_entry(user1_id, "User 1 query")
         create_fake_history_entry(user2_id, "User 2 query")
         
-        # User 1 should only see their own history
         response1 = await ac.get("/history", cookies=cookies1)
         data1 = response1.json()
         
         assert data1["total"] == 1
         assert data1["items"][0]["question"] == "User 1 query"
         
-        # User 2 should only see their own history
         response2 = await ac.get("/history", cookies=cookies2)
         data2 = response2.json()
         
@@ -235,8 +205,8 @@ async def test_get_history_only_own_entries():
 @pytest.mark.asyncio
 async def test_clear_history_unauthenticated():
     """Test that DELETE /history returns 401 when not authenticated."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         response = await ac.delete("/history")
     
     assert response.status_code == 401
@@ -247,28 +217,24 @@ async def test_clear_history_unauthenticated():
 @pytest.mark.asyncio
 async def test_clear_history_success():
     """Test that DELETE /history clears all user's history."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         cookies = await register_and_login(ac)
         user_id = get_user_id_from_cookies(cookies)
         
-        # Insert history entries directly
         create_fake_history_entry(user_id, "Query 1")
         create_fake_history_entry(user_id, "Query 2")
         create_fake_history_entry(user_id, "Query 3")
         
-        # Verify history exists
         history_before = await ac.get("/history", cookies=cookies)
         assert history_before.json()["total"] == 3
         
-        # Clear history
         response = await ac.delete("/history", cookies=cookies)
         
         assert response.status_code == 200
         data = response.json()
         assert "Deleted 3" in data["message"]
         
-        # Verify history is empty
         history_after = await ac.get("/history", cookies=cookies)
         assert history_after.json()["total"] == 0
 
@@ -276,46 +242,22 @@ async def test_clear_history_success():
 @pytest.mark.asyncio
 async def test_clear_history_only_own():
     """Test that clearing history only affects the user's own history."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # User 1: register, login
-        await ac.post("/register", json={
-            "full_name": "User One",
-            "email": "user1@example.com",
-            "password": "Pass123!"
-        })
-        login1 = await ac.post("/login", json={
-            "email": "user1@example.com",
-            "password": "Pass123!"
-        })
-        cookies1 = login1.cookies
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
+        cookies1 = await register_and_login(ac, "User One", "user1@example.com", "Pass123!")
         user1_id = get_user_id_from_cookies(cookies1)
         
-        # User 2: register, login
-        await ac.post("/register", json={
-            "full_name": "User Two",
-            "email": "user2@example.com",
-            "password": "Pass123!"
-        })
-        login2 = await ac.post("/login", json={
-            "email": "user2@example.com",
-            "password": "Pass123!"
-        })
-        cookies2 = login2.cookies
+        cookies2 = await register_and_login(ac, "User Two", "user2@example.com", "Pass123!")
         user2_id = get_user_id_from_cookies(cookies2)
         
-        # Insert history for each user
         create_fake_history_entry(user1_id, "User 1 query")
         create_fake_history_entry(user2_id, "User 2 query")
         
-        # User 1 clears their history
         await ac.delete("/history", cookies=cookies1)
         
-        # User 1's history should be empty
         history1 = await ac.get("/history", cookies=cookies1)
         assert history1.json()["total"] == 0
         
-        # User 2's history should still exist
         history2 = await ac.get("/history", cookies=cookies2)
         assert history2.json()["total"] == 1
 
@@ -327,11 +269,10 @@ async def test_clear_history_only_own():
 @pytest.mark.asyncio
 async def test_query_saves_to_history_when_authenticated():
     """Test that making a query saves it to history when logged in."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         cookies = await register_and_login(ac)
         
-        # Make a query (this one DOES call the real /query endpoint)
         query_response = await ac.post(
             "/query", 
             json={"question": "Show top 5 players"}, 
@@ -340,7 +281,6 @@ async def test_query_saves_to_history_when_authenticated():
         
         assert query_response.status_code == 200
         
-        # Check history
         history_response = await ac.get("/history", cookies=cookies)
         history = history_response.json()
         
@@ -353,22 +293,19 @@ async def test_query_saves_to_history_when_authenticated():
 @pytest.mark.asyncio
 async def test_query_not_saved_when_anonymous():
     """Test that making a query does NOT save to history when not logged in."""
-    transport = ASGITransport(app=app)
+    transport, base_url = get_test_client(app)
     
-    # First client: register and login to create user
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         cookies = await register_and_login(ac)
     
-    # Second client: make anonymous query (completely fresh client, no cookies)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac_anonymous:
+    async with AsyncClient(transport=transport, base_url=base_url) as ac_anonymous:
         query_response = await ac_anonymous.post(
             "/query", 
             json={"question": "Anonymous query"}
         )
         assert query_response.status_code == 200
     
-    # Third client: check history for the user (should be empty)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         history_response = await ac.get("/history", cookies=cookies)
         history = history_response.json()
         
@@ -378,21 +315,18 @@ async def test_query_not_saved_when_anonymous():
 @pytest.mark.asyncio
 async def test_history_entry_structure():
     """Test that history entry contains all expected fields."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    transport, base_url = get_test_client(app)
+    async with AsyncClient(transport=transport, base_url=base_url) as ac:
         cookies = await register_and_login(ac)
         user_id = get_user_id_from_cookies(cookies)
         
-        # Insert a complete history entry
         create_fake_history_entry(user_id, "Test question")
         
-        # Get history
         history_response = await ac.get("/history", cookies=cookies)
         history = history_response.json()
         
         entry = history["items"][0]
         
-        # Verify all expected fields exist
         assert "id" in entry
         assert "user_id" in entry
         assert "question" in entry
@@ -403,7 +337,6 @@ async def test_history_entry_structure():
         assert "raw_rows" in entry
         assert "created_date" in entry
         
-        # Verify field values
         assert entry["question"] == "Test question"
         assert entry["status"] == "success"
         assert entry["sql_query"] == "SELECT * FROM players LIMIT 5"
