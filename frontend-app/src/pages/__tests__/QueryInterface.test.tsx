@@ -176,10 +176,16 @@ describe('QueryInterface Page', () => {
 
   describe('URL Parameters', () => {
     it('processes question from URL parameter on mount', async () => {
-      // Mock window.location.search
-      const originalLocation = window.location
-      delete (window as any).location
-      window.location = { ...originalLocation, search: '?question=Show%20all%20players' }
+      // Properly mock window.location.search using Object.defineProperty
+      const originalSearch = window.location.search
+      Object.defineProperty(window, 'location', {
+        value: {
+          ...window.location,
+          search: '?question=Show%20all%20players',
+        },
+        writable: true,
+        configurable: true,
+      })
 
       mockFetchQuery.mockResolvedValueOnce({
         sql_query: 'SELECT * FROM players',
@@ -196,8 +202,15 @@ describe('QueryInterface Page', () => {
         expect(mockFetchQuery).toHaveBeenCalledWith('Show all players')
       }, { timeout: 500 })
 
-      // Restore original location
-      window.location = originalLocation
+      // Restore original location.search
+      Object.defineProperty(window, 'location', {
+        value: {
+          ...window.location,
+          search: originalSearch,
+        },
+        writable: true,
+        configurable: true,
+      })
     })
   })
 
