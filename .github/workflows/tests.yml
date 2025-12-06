@@ -73,8 +73,3 @@ jobs:
         run: |
           cd frontend-app
           npm run test:run
-
-      - name: Generate frontend coverage report
-        run: |
-          cd frontend-app
-          npm run test:coverage
