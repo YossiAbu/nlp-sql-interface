@@ -180,7 +180,9 @@ describe('Register Page', () => {
       await user.type(screen.getByPlaceholderText(/enter your password/i), 'Password123!')
       await user.click(screen.getByRole('button', { name: /register/i }))
       
-      expect(screen.getByText(/registering/i)).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText(/registering/i)).toBeInTheDocument()
+      })
     })
 
     it('disables button during submission', async () => {

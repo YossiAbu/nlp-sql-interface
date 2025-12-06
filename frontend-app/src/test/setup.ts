@@ -17,22 +17,34 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
 }
 
 // Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  root = null
+globalThis.IntersectionObserver = class IntersectionObserver {
+  root: Element | Document | null = null
   rootMargin = ''
-  thresholds = []
+  thresholds: number[] = []
   
-  constructor() {}
+  constructor(
+    callback: IntersectionObserverCallback,
+    options?: IntersectionObserverInit
+  ) {
+    this.root = options?.root ?? null
+    this.rootMargin = options?.rootMargin ?? ''
+    this.thresholds = Array.isArray(options?.threshold) 
+      ? options.threshold 
+      : options?.threshold !== undefined 
+      ? [options.threshold] 
+      : []
+  }
+  
   observe() {}
   unobserve() {}
   disconnect() {}
   takeRecords() { return [] }
-}
+} as any
 
