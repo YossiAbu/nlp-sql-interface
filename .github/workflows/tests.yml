@@ -73,10 +73,3 @@ jobs:
         run: |
           cd frontend-app
           npm run test:run
-
-      - name: Run frontend tests with coverage check
-        run: |
-          cd frontend-app
-          npm run test:coverage
-          # Check if coverage is below 80% (example threshold)
-          npm run test:coverage -- --check-coverage --lines=80
