@@ -25,3 +25,10 @@ dist-ssr
 
 vitest-output.txt
 coverage/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+.playwright/

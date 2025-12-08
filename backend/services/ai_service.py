@@ -22,7 +22,7 @@ def get_db_chain() -> SQLDatabaseChain:
         if not openai_api_key:
             raise ValueError("OPENAI_API_KEY is not set")
         if _llm is None:
-            model_name = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")  # allow override via .env
+            model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # allow override via .env
             _current_model = model_name
             _llm = ChatOpenAI(
                 temperature=0,
