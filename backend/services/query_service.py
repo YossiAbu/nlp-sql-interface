@@ -283,17 +283,17 @@ def handle_query(question: str) -> QueryResponse:
         )
 
     # Add LIMIT clause to prevent token overflow with OpenAI API
-    # Limit to 100 rows max to avoid exceeding token limits
+    # Limit to 20 rows max to avoid exceeding token limits
     if "LIMIT" not in sql_query.upper():
         sql_query = sql_query.rstrip(';').strip() + " LIMIT 20"
-        logger.info("Added LIMIT 100 clause to query to prevent token overflow")
+        logger.info("Added LIMIT 20 clause to query to prevent token overflow")
 
     # Execute query
     raw_db_result = extract_raw_results(result, sql_query)
     column_names = extract_column_names(sql_query)
     formatted_rows = format_raw_rows(raw_db_result, column_names)
     
-    # Limit results to 100 rows to prevent token overflow with OpenAI API
+    # Limit results to 20 rows to prevent token overflow with OpenAI API
     MAX_ROWS = 20
     if len(formatted_rows) > MAX_ROWS:
         logger.info(f"Limiting results from {len(formatted_rows)} rows to {MAX_ROWS} rows")

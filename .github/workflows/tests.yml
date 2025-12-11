@@ -125,20 +125,10 @@ jobs:
           cd frontend-app
           npx playwright install --with-deps chromium
 
-      - name: Start backend server
-        env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_nlp_sql
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          cd backend
-          PYTHONPATH=. python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
-          # Wait for backend to be ready
-          sleep 5
-          curl --retry 10 --retry-delay 2 --retry-connrefused http://localhost:8000/schema || exit 1
-
       - name: Run E2E tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_nlp_sql
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CI: true
         run: |
           cd frontend-app

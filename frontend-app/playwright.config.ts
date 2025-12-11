@@ -90,7 +90,10 @@ export default defineConfig({
       reuseExistingServer: false,  // Never reuse - always start fresh with test DB
       timeout: 120000,
       env: {
-        DATABASE_URL: 'postgresql://myuser:mypassword@localhost/nlp_sql_test',
+        // Pass through environment variables (from CI or local environment)
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://myuser:mypassword@localhost/nlp_sql_test',
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+        OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       },
     },
   ],
