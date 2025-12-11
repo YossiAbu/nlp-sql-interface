@@ -35,6 +35,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint for deployment and testing"""
+    return {"status": "ok"}
+
 @app.get("/me")
 def get_me(user_id: str = Depends(optional_user)):  # Returns user_id
     if not user_id:

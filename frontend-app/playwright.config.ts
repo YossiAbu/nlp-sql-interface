@@ -72,13 +72,26 @@ export default defineConfig({
     },
   ],
 
-  // Web server configuration - start frontend dev server before running tests
+  // Web server configuration
+  // IMPORTANT: Stop your development backend before running tests!
+  // The tests will start a fresh backend with the test database.
   webServer: [
+    // Frontend dev server
     {
       command: 'npm run dev',
       url: 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
+    },
+    // Backend API server with test database
+    {
+      command: 'node start-test-backend.js',
+      url: 'http://localhost:8000/health',
+      reuseExistingServer: false,  // Never reuse - always start fresh with test DB
+      timeout: 120000,
+      env: {
+        DATABASE_URL: 'postgresql://myuser:mypassword@localhost/nlp_sql_test',
+      },
     },
   ],
 });
