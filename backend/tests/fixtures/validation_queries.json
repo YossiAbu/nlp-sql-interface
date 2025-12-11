@@ -1,0 +1,178 @@
+[
+  {
+    "id": 1,
+    "question": "Show me the top 10 players by overall rating",
+    "expected_sql": "SELECT * FROM players ORDER BY ovr DESC LIMIT 10",
+    "category": "ranking",
+    "description": "Basic ordering and limiting query"
+  },
+  {
+    "id": 2,
+    "question": "List all players from Brazil with rating above 85",
+    "expected_sql": "SELECT * FROM players WHERE nation = 'Brazil' AND ovr > 85",
+    "category": "filtering",
+    "description": "Multiple conditions with AND operator"
+  },
+  {
+    "id": 3,
+    "question": "Which players are strikers and have more than 80 pace?",
+    "expected_sql": "SELECT * FROM players WHERE position LIKE '%ST%' AND pac > 80",
+    "category": "filtering",
+    "description": "Pattern matching with LIKE and numeric comparison"
+  },
+  {
+    "id": 4,
+    "question": "Show me the youngest players in the database",
+    "expected_sql": "SELECT * FROM players ORDER BY age ASC LIMIT 10",
+    "category": "ranking",
+    "description": "Ascending order for youngest players"
+  },
+  {
+    "id": 5,
+    "question": "Find players with high dribbling skills",
+    "expected_sql": "SELECT * FROM players WHERE dri > 85 ORDER BY dri DESC",
+    "category": "filtering",
+    "description": "Filter by specific skill attribute"
+  },
+  {
+    "id": 6,
+    "question": "Show all goalkeepers with diving rating above 80",
+    "expected_sql": "SELECT * FROM players WHERE position = 'GK' AND gk_diving > 80",
+    "category": "filtering",
+    "description": "Goalkeeper-specific attributes"
+  },
+  {
+    "id": 7,
+    "question": "List players from Premier League teams",
+    "expected_sql": "SELECT * FROM players WHERE league LIKE '%Premier League%'",
+    "category": "filtering",
+    "description": "League-based filtering"
+  },
+  {
+    "id": 8,
+    "question": "Who are the fastest players?",
+    "expected_sql": "SELECT * FROM players ORDER BY pac DESC LIMIT 10",
+    "category": "ranking",
+    "description": "Sorting by pace attribute"
+  },
+  {
+    "id": 9,
+    "question": "Find all left-footed players with shooting above 85",
+    "expected_sql": "SELECT * FROM players WHERE preferred_foot = 'Left' AND sho > 85",
+    "category": "filtering",
+    "description": "Filter by preferred foot and skill"
+  },
+  {
+    "id": 10,
+    "question": "Show me players with 5-star skill moves",
+    "expected_sql": "SELECT * FROM players WHERE skill_moves = 5",
+    "category": "filtering",
+    "description": "Filter by skill moves rating"
+  },
+  {
+    "id": 11,
+    "question": "List the best defenders by overall rating",
+    "expected_sql": "SELECT * FROM players WHERE position LIKE '%CB%' OR position LIKE '%LB%' OR position LIKE '%RB%' ORDER BY ovr DESC LIMIT 10",
+    "category": "complex",
+    "description": "Multiple position checks with OR"
+  },
+  {
+    "id": 12,
+    "question": "Find players taller than 190cm",
+    "expected_sql": "SELECT * FROM players WHERE height > 190",
+    "category": "filtering",
+    "description": "Physical attribute filtering"
+  },
+  {
+    "id": 13,
+    "question": "Show players from Spain who play for Barcelona",
+    "expected_sql": "SELECT * FROM players WHERE nation = 'Spain' AND team LIKE '%Barcelona%'",
+    "category": "filtering",
+    "description": "Nation and team combination"
+  },
+  {
+    "id": 14,
+    "question": "Which players have the best finishing stats?",
+    "expected_sql": "SELECT * FROM players ORDER BY finishing DESC LIMIT 10",
+    "category": "ranking",
+    "description": "Sort by specific technical skill"
+  },
+  {
+    "id": 15,
+    "question": "List all players aged between 20 and 25",
+    "expected_sql": "SELECT * FROM players WHERE age BETWEEN 20 AND 25",
+    "category": "filtering",
+    "description": "Range query with BETWEEN"
+  },
+  {
+    "id": 16,
+    "question": "Show me players with high passing and vision",
+    "expected_sql": "SELECT * FROM players WHERE pas > 85 AND vision > 85",
+    "category": "filtering",
+    "description": "Multiple skill attributes"
+  },
+  {
+    "id": 17,
+    "question": "Find the strongest players",
+    "expected_sql": "SELECT * FROM players ORDER BY strength DESC LIMIT 10",
+    "category": "ranking",
+    "description": "Physical attribute ranking"
+  },
+  {
+    "id": 18,
+    "question": "Which players have weak foot rating of 5?",
+    "expected_sql": "SELECT * FROM players WHERE weak_foot = 5",
+    "category": "filtering",
+    "description": "Weak foot rating filter"
+  },
+  {
+    "id": 19,
+    "question": "Show me all midfielders with overall rating above 80",
+    "expected_sql": "SELECT * FROM players WHERE (position LIKE '%CM%' OR position LIKE '%CDM%' OR position LIKE '%CAM%') AND ovr > 80",
+    "category": "complex",
+    "description": "Multiple position patterns with rating filter"
+  },
+  {
+    "id": 20,
+    "question": "List players from Germany",
+    "expected_sql": "SELECT * FROM players WHERE nation = 'Germany'",
+    "category": "filtering",
+    "description": "Simple nation filter"
+  },
+  {
+    "id": 21,
+    "question": "Show players with excellent ball control",
+    "expected_sql": "SELECT * FROM players WHERE ball_control > 85 ORDER BY ball_control DESC",
+    "category": "filtering",
+    "description": "Technical skill with ordering"
+  },
+  {
+    "id": 22,
+    "question": "Find all wingers",
+    "expected_sql": "SELECT * FROM players WHERE position LIKE '%LW%' OR position LIKE '%RW%' OR position LIKE '%LM%' OR position LIKE '%RM%'",
+    "category": "complex",
+    "description": "Multiple winger position patterns"
+  },
+  {
+    "id": 23,
+    "question": "Which players have the best free kick accuracy?",
+    "expected_sql": "SELECT * FROM players ORDER BY free_kick_accuracy DESC LIMIT 10",
+    "category": "ranking",
+    "description": "Specialized skill ranking"
+  },
+  {
+    "id": 24,
+    "question": "Show me players under 23 years old with rating above 75",
+    "expected_sql": "SELECT * FROM players WHERE age < 23 AND ovr > 75",
+    "category": "filtering",
+    "description": "Age and rating combination for young talents"
+  },
+  {
+    "id": 25,
+    "question": "List the top 5 players by stamina",
+    "expected_sql": "SELECT * FROM players ORDER BY stamina DESC LIMIT 5",
+    "category": "ranking",
+    "description": "Physical attribute ranking"
+  }
+]
+

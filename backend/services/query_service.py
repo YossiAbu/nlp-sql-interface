@@ -69,6 +69,108 @@ DATASET_DESCRIPTION: str = """
     Goalkeeping Attributes: GK Diving, GK Handling, GK Kicking, GK Positioning, GK Reflexes.
 """
 
+# ---------------- SQL Query Guidelines ----------------
+SQL_GUIDELINES: str = """
+IMPORTANT SQL QUERY GUIDELINES:
+
+⚠️ CRITICAL DEFAULTS:
+- ALWAYS use LIMIT 10 as default (NOT 5, NOT 20, use exactly 10)
+- ALWAYS include these 5 columns: rank, name, ovr, position, team
+
+1. POSITION FILTERING:
+   - Position values are ABBREVIATIONS (e.g., 'ST', 'CB', 'LW', 'CM')
+   - For defenders: Use position LIKE '%CB%' OR position LIKE '%LB%' OR position LIKE '%RB%'
+   - For midfielders: Use position LIKE '%CM%' OR position LIKE '%CDM%' OR position LIKE '%CAM%'
+   - For forwards: Use position LIKE '%ST%' OR position LIKE '%CF%' OR position LIKE '%LW%' OR position LIKE '%RW%'
+   - For wingers: Use position LIKE '%LW%' OR position LIKE '%RW%' OR position LIKE '%LM%' OR position LIKE '%RM%'
+   - For goalkeepers: Use position = 'GK'
+   
+2. TEAM AND LEAGUE NAMES:
+   - Team names often have variations (e.g., 'FC Barcelona', 'Barcelona B', 'Barcelona')
+   - Always use LIKE for team/league matching: team LIKE '%Barcelona%' NOT team = 'Barcelona'
+   - League names: league LIKE '%Premier League%' NOT league = 'Premier League'
+
+3. PLAYER ROLES:
+   - Don't filter by stat attributes (def, pac, sho) when looking for positions
+   - Filter by the 'position' column using correct abbreviations
+
+4. "TALLEST/BEST IN EACH POSITION" QUERIES:
+   - For "tallest/best/top player in each position/group" queries
+   - Use DISTINCT ON (PostgreSQL): SELECT DISTINCT ON (position) ... ORDER BY position, height DESC
+   - OR use window functions: ROW_NUMBER() OVER (PARTITION BY position ORDER BY height DESC)
+   - DON'T use: WHERE height IN (SELECT MAX(height) ... GROUP BY position) ❌ This is WRONG!
+
+5. COLUMN SELECTION - MANDATORY COLUMNS (VERY IMPORTANT):
+   - ALWAYS include these 5 mandatory columns: rank, name, ovr, position, team
+   - Add up to 3 additional relevant columns based on the question
+   - Maximum 8 columns total (5 mandatory + 3 optional)
+   - Order: mandatory columns first, then relevant columns
+   
+6. LIMIT CLAUSE (VERY IMPORTANT - READ CAREFULLY):
+   - DEFAULT IS 10: Always use LIMIT 10 unless user explicitly asks for different amount
+   - DO NOT use LIMIT 5 - this is wrong! Use LIMIT 10 as default
+   - Maximum LIMIT: 50 (NEVER exceed this, even if user asks for more)
+   - User specifies number: Respect it but cap at 50
+   - NO LIMIT clause specified: Add LIMIT 10
+   
+   Examples:
+   - No specific amount asked → LIMIT 10 (NOT 5!)
+   - "top 20 players" → LIMIT 20
+   - "top 100 players" → LIMIT 50 (capped at maximum)
+   - "show players" → LIMIT 10 (default)
+
+EXAMPLES WITH MANDATORY COLUMNS:
+- "Show defenders" → 
+  SELECT rank, name, ovr, position, team, def, heading_accuracy 
+  FROM players 
+  WHERE position LIKE '%CB%' OR position LIKE '%LB%' OR position LIKE '%RB%' 
+  ORDER BY ovr DESC LIMIT 10
+  
+- "Find midfielders" → 
+  SELECT rank, name, ovr, position, team, pas, vision 
+  FROM players 
+  WHERE position LIKE '%CM%' OR position LIKE '%CDM%' OR position LIKE '%CAM%' 
+  LIMIT 10
+  
+- "Fastest players" → 
+  SELECT rank, name, ovr, position, team, pac, sprint_speed, acceleration 
+  FROM players 
+  ORDER BY pac DESC LIMIT 10
+  
+- "Players from Barcelona" → 
+  SELECT rank, name, ovr, position, team, age, nation 
+  FROM players 
+  WHERE team LIKE '%Barcelona%' 
+  LIMIT 10
+  
+- "Premier League players" → 
+  SELECT rank, name, ovr, position, team, league, age 
+  FROM players 
+  WHERE league LIKE '%Premier League%' 
+  LIMIT 10
+  
+- "Tallest player in each position" → 
+  SELECT DISTINCT ON (position) rank, name, ovr, position, team, height 
+  FROM players 
+  ORDER BY position, height DESC
+  
+- "Best player in each team" → 
+  SELECT DISTINCT ON (team) rank, name, ovr, position, team 
+  FROM players 
+  ORDER BY team, ovr DESC
+  
+- "Top 20 players" → 
+  SELECT rank, name, ovr, position, team 
+  FROM players 
+  ORDER BY ovr DESC LIMIT 20
+  
+- "Top 100 players" → 
+  SELECT rank, name, ovr, position, team 
+  FROM players 
+  ORDER BY ovr DESC LIMIT 50
+  (Note: Capped at 50 even though user asked for 100)
+"""
+
 # ---------------- Prompt Builder ----------------
 def build_schema_aware_prompt(question: str, schema_text: str) -> str:
     """Build schema & dataset-aware prompt for AI."""
@@ -85,7 +187,11 @@ def build_schema_aware_prompt(question: str, schema_text: str) -> str:
         f"{schema_text}\n\n"
         "Here is a detailed description of each column:\n"
         f"{DATASET_DESCRIPTION}\n\n"
-        "Only write a valid SQL SELECT query using the tables and columns listed above."
+        f"{SQL_GUIDELINES}\n\n"
+        "Only write a valid SQL SELECT query using the tables and columns listed above. "
+        "Follow the SQL guidelines above for position filtering and team/league name matching. "
+        "IMPORTANT: Always use LIMIT 10 as default (not 5, not 20 - exactly 10). "
+        "IMPORTANT: Always include mandatory columns: rank, name, ovr, position, team. "
         "Do not place a semicolon before the LIMIT clause. Only use a semicolon at the very end of the SQL statement."
         f"{model_specific_instruction}"
     )
