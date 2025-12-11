@@ -190,6 +190,80 @@ npm run test:e2e:debug
 
 **📖 For detailed E2E testing instructions, see [E2E_SETUP.md](frontend-app/E2E_SETUP.md)**
 
+### Validation Query Dataset
+
+The project includes a comprehensive validation dataset for testing AI-generated SQL queries:
+
+**Location:** `backend/tests/fixtures/validation_queries.json`
+
+This dataset contains 25 carefully crafted test cases with:
+- Natural language questions
+- Expected SQL queries
+- Query categories (ranking, filtering, complex)
+- Descriptions of what each test validates
+
+**Categories:**
+- **Ranking** (9 queries) - ORDER BY queries with LIMIT
+- **Filtering** (11 queries) - WHERE clause conditions
+- **Complex** (5 queries) - Multiple conditions, OR operators, pattern matching
+
+#### Real Model Validation (Tests OpenAI API)
+
+⚠️ **These tests use the REAL OpenAI API and cost money!**
+
+```bash
+cd backend
+
+# Generate detailed validation report (recommended)
+# ⚠️ This makes 25 API calls to OpenAI
+python tests/validate_model.py
+
+# Save report to file
+python tests/validate_model.py --output validation_report.txt
+
+# Run validation via pytest
+pytest tests/test_validation_queries.py::TestRealModelValidation -v
+
+# Run only dataset integrity tests (free, no API calls)
+pytest tests/test_validation_queries.py::TestValidationDatasetIntegrity -v
+```
+
+**What Gets Tested:**
+- ✅ AI generates syntactically valid SQL
+- ✅ SQL contains expected clauses (WHERE, ORDER BY, LIMIT, LIKE, BETWEEN)
+- ✅ SQL executes without errors
+- ✅ Quality metrics and accuracy percentage by category
+
+**Example Validation Entry:**
+```json
+{
+  "id": 1,
+  "question": "Show me the top 10 players by overall rating",
+  "expected_sql": "SELECT * FROM players ORDER BY ovr DESC LIMIT 10",
+  "category": "ranking",
+  "description": "Basic ordering and limiting query"
+}
+```
+
+**Validation Report Output:**
+```
+VALIDATION SUMMARY
+==================
+Total Queries: 25
+Passed: 23 (92.0%)
+Failed: 2 (8.0%)
+
+Accuracy by Category:
+  ranking     :  9/9 (100%)
+  filtering   : 10/11 (91%)
+  complex     :  4/5 (80%)
+```
+
+**Note:** The validation tests require:
+- Valid `OPENAI_API_KEY` environment variable
+- Will cost ~$0.05-0.10 per run (depending on model)
+- Takes 2-5 minutes to complete all tests
+
 ## 📁 Project Structure
 
 ```
@@ -205,6 +279,8 @@ nlp-sql-interface/
 │   │   ├── history_service.py  # Query history
 │   │   └── ...
 │   ├── tests/                   # Backend tests
+│   │   ├── fixtures/            # Test data & validation queries
+│   │   └── test_*.py            # Test files
 │   ├── main.py                  # FastAPI application
 │   ├── requirements.txt         # Python dependencies
 │   └── .env                     # Environment variables
