@@ -48,26 +48,35 @@ class TestRealModelValidation:
     """
     
     @pytest.mark.parametrize("query_data", VALIDATION_QUERIES, ids=lambda q: f"Q{q['id']}: {q['question'][:50]}")
-    def test_sql_generation_quality(self, query_data):
+    def test_sql_generation_and_execution(self, query_data):
         """
-        Test that the AI model generates correct SQL for each validation query.
-        This compares actual AI-generated SQL against expected SQL.
+        Test that the AI model generates correct SQL and executes successfully.
+        Combines quality validation and execution check to avoid duplicate API calls.
+        
+        This test:
+        1. Calls OpenAI API once to generate SQL
+        2. Checks that execution succeeded
+        3. Validates SQL quality against expected output
         """
         question = query_data["question"]
         expected_sql = query_data["expected_sql"]
         category = query_data["category"]
         
-        # Get SQL from REAL OpenAI API
+        # Get SQL from REAL OpenAI API (only once!)
         result = handle_query(question)
         generated_sql = clean_sql_query(result.sql_query).upper().strip()
         expected_sql_clean = clean_sql_query(expected_sql).upper().strip()
         
-        # Basic validation
+        # Check 1: Execution succeeded (fail fast if execution failed)
+        assert result.status == "success", \
+            f"Query execution failed\nQ: {question}\nSQL: {result.sql_query}\nError: {getattr(result, 'error_message', 'Unknown')}"
+        
+        # Check 2: Basic validation
         assert result.sql_query, f"No SQL generated for: {question}"
         assert result.sql_query.strip().upper().startswith("SELECT"), \
             f"Generated SQL doesn't start with SELECT\nQ: {question}\nGot: {result.sql_query}"
         
-        # Check for critical SQL issues (flexible validation)
+        # Check 3: SQL quality validation (flexible validation)
         import re
         critical_issues = []
         
@@ -123,21 +132,6 @@ class TestRealModelValidation:
                 f"{'='*80}"
             )
             pytest.fail(failure_msg)
-    
-    @pytest.mark.parametrize("query_data", VALIDATION_QUERIES, ids=lambda q: f"Q{q['id']}: {q['question'][:50]}")
-    def test_sql_executes_without_errors(self, query_data):
-        """
-        Test that generated SQL doesn't cause execution errors.
-        This is a basic sanity check that SQL is syntactically valid.
-        """
-        question = query_data["question"]
-        
-        # Get SQL from REAL OpenAI API
-        result = handle_query(question)
-        
-        # Check that execution succeeded
-        assert result.status == "success", \
-            f"Query execution failed\nQ: {question}\nSQL: {result.sql_query}\nError: {getattr(result, 'error_message', 'Unknown')}"
 
 
 # ============================================
