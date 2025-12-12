@@ -204,17 +204,17 @@ class TestQueryEndpoint:
         ]
     
     @pytest.mark.asyncio
-    async def test_sanitizes_malicious_input(self):
-        """Test that malicious input is sanitized into safe SQL."""
+    async def test_blocks_malicious_input(self):
+        """Test that malicious input with suspicious patterns is blocked."""
         payload = {"question": "DROP TABLE players"}
         transport, base_url = get_test_client(app)
         async with AsyncClient(transport=transport, base_url=base_url) as ac:
             response = await ac.post("/query", json=payload)
         
-        assert response.status_code == 200
+        # Should be blocked with 400 Bad Request (security feature)
+        assert response.status_code == 400
         data = response.json()
-        assert data["sql_query"].strip().upper().startswith("SELECT")
-        assert data["status"] == "success"
+        assert "Invalid query pattern" in data["detail"]
 
 
 # ============================================
