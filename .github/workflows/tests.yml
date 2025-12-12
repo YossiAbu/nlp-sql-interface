@@ -154,3 +154,11 @@ jobs:
           name: test-results
           path: frontend-app/test-results/
           retention-days: 7
+
+      - name: Upload backend E2E logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-e2e-logs
+          path: frontend-app/backend-e2e.log
+          retention-days: 7

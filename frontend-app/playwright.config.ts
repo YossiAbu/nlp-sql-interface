@@ -85,7 +85,7 @@ export default defineConfig({
     },
     // Backend API server with test database
     {
-      command: 'node start-test-backend.js',
+      command: 'node start-test-backend.js > backend-e2e.log 2>&1',  // Redirect logs to file
       url: 'http://localhost:8000/health',
       reuseExistingServer: false,  // Never reuse - always start fresh with test DB
       timeout: 120000,
