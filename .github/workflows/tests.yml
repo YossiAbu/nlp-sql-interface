@@ -125,6 +125,11 @@ jobs:
           cd frontend-app
           npx playwright install --with-deps chromium
 
+      - name: Initialize test database
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_nlp_sql
+        run: python backend/tests/init_test_db.py
+
       - name: Run E2E tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_nlp_sql
