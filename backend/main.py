@@ -34,20 +34,19 @@ def startup_event():
 # Enable CORS
 # Note: When allow_credentials=True, allow_origins cannot be ["*"]
 # Must specify exact origins for browser credential requests
+
 allowed_origins = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:5174",  # Vite dev server (alternate port)
-    "http://localhost:3000",  # Alternative dev server
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
 ]
 
 # Add production frontend URL if set
-frontend_url = os.getenv("FRONTEND_URL")
-if frontend_url:
-    allowed_origins.append(frontend_url)
-    logger.info(f"Added production frontend URL to CORS: {frontend_url}")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
+    logger.info(f"Added production frontend URL to CORS: {FRONTEND_URL}")
+
 
 app.add_middleware(
     CORSMiddleware,
