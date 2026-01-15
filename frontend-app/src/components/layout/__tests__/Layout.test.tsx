@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BrowserRouter } from 'react-router-dom'
 import Layout from '../Layout'
+import { API_BASE_URL } from '@/lib/api'
 
 // Mock navigation
 const mockNavigate = vi.fn()
@@ -171,7 +172,7 @@ describe('Layout Component', () => {
 
       await waitFor(() => {
         expect(globalThis.fetch).toHaveBeenCalledWith(
-          'http://localhost:8000/logout',
+          `${API_BASE_URL}/logout`,
           expect.objectContaining({
             method: 'POST',
             credentials: 'include',

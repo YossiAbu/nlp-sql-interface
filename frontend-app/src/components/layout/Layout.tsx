@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ReactNode, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { API_BASE_URL } from "@/lib/api";
 import { User as UserType } from "@/entities/User";
 import ThemeToggle from "./ThemeToggle";
 import { UserAPI } from "@/entities/User";
@@ -71,7 +72,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:8000/logout", {
+      await fetch(`${API_BASE_URL}/logout`, {
         method: "POST",
         credentials: "include",
       });

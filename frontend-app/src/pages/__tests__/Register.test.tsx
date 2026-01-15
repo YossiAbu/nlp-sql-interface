@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BrowserRouter } from 'react-router-dom'
 import Register from '../Register'
+import { API_BASE_URL } from '@/lib/api'
 
 
 // Mock useNavigate
@@ -91,7 +92,7 @@ describe('Register Page', () => {
       
       await waitFor(() => {
         expect(globalThis.fetch).toHaveBeenCalledWith(
-          'http://localhost:8000/register',
+          `${API_BASE_URL}/register`,
           expect.objectContaining({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -1,3 +1,5 @@
+import { API_BASE_URL } from "@/lib/api";
+
 export interface User {
   email: string;
   full_name: string;
@@ -6,7 +8,7 @@ export interface User {
 export const UserAPI = {
   // Returns `null` when unauthenticated
   async me(): Promise<User | null> {
-    const res = await fetch("http://localhost:8000/me", {
+    const res = await fetch(`${API_BASE_URL}/me`, {
       method: "GET",
       credentials: "include",
     });
@@ -27,7 +29,7 @@ export const UserAPI = {
 
   // ✅ Added login method
   async login(): Promise<User | null> {
-    const res = await fetch("http://localhost:8000/login", {
+    const res = await fetch(`${API_BASE_URL}/login`, {
       method: "POST",
       credentials: "include",
     });
