@@ -336,6 +336,194 @@ All tests must pass before merging to `main` or `dev` branches.
 **Required GitHub Secrets:**
 - `OPENAI_API_KEY` - Your OpenAI API key
 
+## 🚀 Deployment Setup (EC2 & CI/CD)
+
+### Prerequisites for AWS EC2 Deployment
+
+1. **EC2 Instance Setup:**
+   - Launch an Ubuntu EC2 instance (t2.micro or larger)
+   - Configure security groups to allow SSH (port 22) and your application ports
+   - Install Docker and Docker Compose on the instance
+   - Clone your repository to the EC2 instance
+
+2. **SSH Authentication Configuration:**
+
+   SSH-based authentication is more secure than embedding tokens in git commands. Follow these steps:
+
+   **On your EC2 instance:**
+   ```bash
+   # Generate an SSH key pair
+   ssh-keygen -t ed25519 -C "aws-ec2-deployment"
+   
+   # Display the public key
+   cat ~/.ssh/id_ed25519.pub
+   ```
+
+   **On GitHub:**
+   - Go to your repository → Settings → Deploy Keys
+   - Click "Add deploy key"
+   - Paste the public key from above
+   - Give it a descriptive name (e.g., "AWS EC2 Deployment")
+   - Check "Allow write access" if you need to push from EC2
+
+   **Configure Git Remote on EC2:**
+   ```bash
+   cd ~/your-project
+   # Set remote URL to use SSH (replace USERNAME/REPO with yours)
+   git remote set-url origin git@github.com:USERNAME/REPO.git
+   
+   # Test the connection
+   git pull origin main  # Should work without password
+   ```
+
+3. **GitHub Actions Secrets:**
+
+   Configure the following secrets in your GitHub repository (Settings → Secrets and variables → Actions):
+
+   **Required Secrets:**
+   - `EC2_HOST` - Your EC2 instance IP address or hostname
+   - `EC2_SSH_KEY` - The private SSH key for accessing the EC2 instance
+   - `BOT_TOKEN` - Your application's bot token (if applicable)
+   - `OPENAI_API_KEY` - Your OpenAI API key
+   - Any other environment-specific secrets (DB credentials, API keys, etc.)
+
+### GitHub Actions Workflow Configuration
+
+Example workflow for automated deployment:
+
+```yaml
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main  # Deploy on push to main branch
+      - production  # Or your production branch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Tests
+        run: |
+          # Your test commands here
+          pytest
+
+  deploy:
+    needs: test  # Wait for tests to pass
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/your-project
+            git pull origin main
+            # Build with --no-cache to ensure fresh build
+            docker build --no-cache -t your-app .
+            docker stop your-container || true
+            docker rm your-container || true
+            docker run -d \
+                --name your-container \
+                --restart always \
+                -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+                your-app
+            docker image prune -f
+```
+
+### Security Best Practices
+
+⚠️ **IMPORTANT:** Never embed `GITHUB_TOKEN` or other secrets in git URLs:
+
+**❌ INSECURE (DO NOT USE):**
+```bash
+git pull https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/user/repo.git
+```
+
+**✅ SECURE (USE THIS):**
+```bash
+git pull origin main  # Uses SSH keys configured on EC2
+```
+
+**Why?**
+- Tokens in URLs are exposed in shell history (`~/.bash_history`)
+- Visible in process listings (`ps aux`)
+- May be captured in SSH logs
+- Accessible to anyone with EC2 access
+
+### Deployment Checklist
+
+Before deploying to production:
+
+- [ ] SSH keys configured on EC2 and added as GitHub deploy key
+- [ ] All required secrets configured in GitHub Actions
+- [ ] Git remote set to use SSH (not HTTPS with tokens)
+- [ ] Docker and Docker Compose installed on EC2
+- [ ] Security groups properly configured
+- [ ] Environment variables set in deployment script
+- [ ] Tests pass in CI/CD pipeline
+- [ ] `--no-cache` flag used in Docker build for fresh deployments
+
+### Verifying Deployment
+
+After pushing changes:
+
+1. **Check GitHub Actions:**
+   - Navigate to your repository → Actions tab
+   - Verify the workflow runs successfully
+   - Check both test and deploy jobs
+
+2. **Check EC2 Application:**
+   ```bash
+   ssh ubuntu@your-ec2-ip
+   cd ~/your-project
+   
+   # Check running containers
+   docker ps
+   
+   # View logs
+   docker logs your-container --tail 50
+   
+   # Follow logs in real-time
+   docker logs -f your-container
+   ```
+
+3. **Test the Application:**
+   - Access your application URL
+   - Verify new features/changes are live
+   - Check application logs for errors
+
+### Troubleshooting Deployment
+
+**Git pull fails on EC2:**
+```bash
+# Test SSH connection to GitHub
+ssh -T git@github.com
+
+# If fails, check SSH key permissions
+chmod 600 ~/.ssh/id_ed25519
+chmod 644 ~/.ssh/id_ed25519.pub
+```
+
+**Docker build fails:**
+```bash
+# Check Docker daemon status
+sudo systemctl status docker
+
+# View build logs
+docker build --no-cache -t your-app . 2>&1 | tee build.log
+```
+
+**GitHub Actions deployment fails:**
+- Verify `EC2_HOST` is correct
+- Check `EC2_SSH_KEY` is the complete private key (including headers)
+- Ensure EC2 security group allows SSH from GitHub Actions IPs
+- Review workflow logs for specific error messages
+
 ## 📊 Sample Queries
 
 Try these example queries once the application is running:

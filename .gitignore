@@ -1,2 +1,3 @@
 nlp-sql-env/
 CI_POSTGRESQL_SETUP.md
+nlp_sql_backup.sql
