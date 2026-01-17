@@ -1,3 +1,7 @@
 nlp-sql-env/
 CI_POSTGRESQL_SETUP.md
 nlp_sql_backup.sql
+
+# Claude VSCode extension temp files
+tmpclaude-*
+*.tmpclaude
