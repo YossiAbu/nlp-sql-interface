@@ -57,7 +57,7 @@ export default function QueryInput({ onSubmit, isLoading }: Props) {
           <Textarea
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder='e.g. "Show me all customers from New York with orders over $1000"'
+            placeholder='e.g. "Show players who play for Real Madrid"'
             disabled={isLoading}
             className="min-h-[130px] w-full bg-surface-input border-2 border-theme rounded-xl p-4 text-lg leading-relaxed text-body placeholder:text-muted-body resize-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition"
           />
