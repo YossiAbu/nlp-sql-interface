@@ -1,6 +1,5 @@
 from typing import Hashable
 
-
 import pandas as pd
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
@@ -9,7 +8,8 @@ import os
 load_dotenv()
 postgres_url: str | None = os.getenv("DATABASE_URL")
 
-df = pd.read_csv("./data/male_players.csv")
+# Explicitly specify UTF-8 encoding when reading CSV
+df = pd.read_csv("./data/male_players.csv", encoding='utf-8')
 df.drop(list[Hashable](df.columns[:2]), axis=1, inplace=True)
 
 df.fillna(
