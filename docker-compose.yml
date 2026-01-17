@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nlp_sql
+      # Ensure PostgreSQL uses UTF-8
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env  # ADD THIS LINE - tells docker-compose to load this file
+    environment:
+      # LOCAL URLs - perfect for development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/nlp_sql
+      - FRONTEND_URL=http://localhost:5173
+      # OPENAI_API_KEY and OPENAI_MODEL will come from backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      # Exclude venv from volume mount
+      - /app/nlp-sql-env
+    command: bash start.sh
+
+  frontend:
+    build:
+      context: ./frontend-app
+      dockerfile: Dockerfile
+      target: development  # Use builder stage for development
+    ports:
+      - "5173:5173"  # Vite dev server uses 5173
+    environment:
+      # LOCAL URL - perfect for development
+      - VITE_API_BASE_URL=http://localhost:8000
+    volumes:
+      - ./frontend-app:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+
+volumes:
+  postgres_data:
