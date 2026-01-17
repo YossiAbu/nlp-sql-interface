@@ -31,5 +31,5 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application
-# Use Railway's $PORT if available, otherwise default to 8000
-CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Load data first, then start server
+CMD ["sh", "-c", "python load_data.py && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
