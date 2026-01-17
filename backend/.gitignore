@@ -4,5 +4,5 @@
 .coverage
 
 __pycache__/
-data/
+data/.ipynb_checkpoints/
 nlp-sql-env/
