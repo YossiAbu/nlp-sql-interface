@@ -29,12 +29,6 @@ iniconfig==2.1.0
 jiter==0.10.0
 jsonpatch==1.33
 jsonpointer==3.0.0
-langchain==0.3.27
-langchain-community==0.3.27
-langchain-core==0.3.72
-langchain-experimental==0.3.4
-langchain-text-splitters==0.3.9
-langsmith==0.4.10
 marshmallow==3.26.1
 multidict==6.6.3
 mypy_extensions==1.1.0
@@ -43,7 +37,6 @@ openai==1.98.0
 orjson==3.11.1
 packaging==25.0
 pandas==2.3.1
-passlib==1.7.4
 pluggy==1.6.0
 propcache==0.3.2
 psycopg2-binary==2.9.10

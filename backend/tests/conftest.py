@@ -1,7 +1,6 @@
 # backend/tests/conftest.py
 import os
 import pytest
-from typing import Any, Dict
 from dotenv import load_dotenv
 
 
@@ -22,13 +21,13 @@ def pytest_sessionstart(session):
     from services.user_service import users_table, metadata, get_engine
     from tests.init_test_db import create_players_table_and_data
     import os
-    
+
     engine = get_engine()
-    
+
     # Create users and history tables
     metadata.create_all(engine)
     init_db()
-    
+
     # Create players table with test data (using shared initialization script)
     create_players_table_and_data(os.getenv('DATABASE_URL'))
 
@@ -61,22 +60,10 @@ def pytest_collection_modifyitems(config, items):
 # ============================================
 # Mock Services Fixture
 # ============================================
-class FakeDBChain:
-    """Fake AI chain that always returns the same SQL and result."""
-    def invoke(self, prompt: str) -> Dict[str, Any]:
-        return {
-            "result": "Top players list",
-            "intermediate_steps": [
-                "SELECT name, ovr FROM players LIMIT 3;",
-                "SQLResult: [('Messi', 93), ('Ronaldo', 92), ('Mbappe', 91)]"
-            ]
-        }
-
-
 @pytest.fixture(autouse=True)
 def mock_services(request, monkeypatch):
-    """Automatically mock AI chain and schema for all tests."""
-    
+    """Automatically mock AI and DB execution for all tests."""
+
     if 'no_mock' in request.keywords:
         return  # Skip mocking for tests marked with @pytest.mark.no_mock
 
@@ -84,10 +71,17 @@ def mock_services(request, monkeypatch):
     import services.schema_service as ss
     import main
 
-    # ---- Mock AI chain ----
-    def fake_get_db_chain():
-        return FakeDBChain()
-    monkeypatch.setattr(qs, "get_db_chain", fake_get_db_chain)
+    # ---- Mock generate_sql ----
+    def fake_generate_sql(system_prompt: str, user_question: str) -> str:
+        return "SELECT name, ovr FROM players LIMIT 3"
+
+    monkeypatch.setattr(qs, "generate_sql", fake_generate_sql)
+
+    # ---- Mock execute_raw_sql ----
+    def fake_execute_raw_sql(sql_query: str) -> list:
+        return [('Messi', 93), ('Ronaldo', 92), ('Mbappe', 91)]
+
+    monkeypatch.setattr(qs, "execute_raw_sql", fake_execute_raw_sql)
 
     # ---- Fake schema data ----
     fake_schema_text = "Table: players | Columns: name, ovr"

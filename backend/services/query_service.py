@@ -1,14 +1,12 @@
-import ast
 from datetime import datetime
 import re
 import time
 from typing import Any, Dict, List
-from .ai_service import get_db_chain
+from .ai_service import generate_sql, get_current_model
 from .schema_service import get_schema_text
-from .db_service import get_db
+from .db_service import execute_raw_sql
 from .logging_service import logger
 from models.response_models import QueryResponse
-from services.ai_service import get_current_model
 
 # ---------------- Alias Mapping ----------------
 ALIASES: Dict[str, str] = {
@@ -84,7 +82,7 @@ IMPORTANT SQL QUERY GUIDELINES:
    - For forwards: Use position LIKE '%ST%' OR position LIKE '%CF%' OR position LIKE '%LW%' OR position LIKE '%RW%'
    - For wingers: Use position LIKE '%LW%' OR position LIKE '%RW%' OR position LIKE '%LM%' OR position LIKE '%RM%'
    - For goalkeepers: Use position = 'GK'
-   
+
 2. TEAM AND LEAGUE NAMES:
    - Team names often have variations (e.g., 'FC Barcelona', 'Barcelona B', 'Barcelona')
    - Always use LIKE for team/league matching: team LIKE '%Barcelona%' NOT team = 'Barcelona'
@@ -105,14 +103,14 @@ IMPORTANT SQL QUERY GUIDELINES:
    - Add up to 3 additional relevant columns based on the question
    - Maximum 8 columns total (5 mandatory + 3 optional)
    - Order: mandatory columns first, then relevant columns
-   
+
 6. LIMIT CLAUSE (VERY IMPORTANT - READ CAREFULLY):
    - DEFAULT IS 10: Always use LIMIT 10 unless user explicitly asks for different amount
    - DO NOT use LIMIT 5 - this is wrong! Use LIMIT 10 as default
    - Maximum LIMIT: 50 (NEVER exceed this, even if user asks for more)
    - User specifies number: Respect it but cap at 50
    - NO LIMIT clause specified: Add LIMIT 10
-   
+
    Examples:
    - No specific amount asked → LIMIT 10 (NOT 5!)
    - "top 20 players" → LIMIT 20
@@ -120,69 +118,63 @@ IMPORTANT SQL QUERY GUIDELINES:
    - "show players" → LIMIT 10 (default)
 
 EXAMPLES WITH MANDATORY COLUMNS:
-- "Show defenders" → 
-  SELECT rank, name, ovr, position, team, def, heading_accuracy 
-  FROM players 
-  WHERE position LIKE '%CB%' OR position LIKE '%LB%' OR position LIKE '%RB%' 
+- "Show defenders" →
+  SELECT rank, name, ovr, position, team, def, heading_accuracy
+  FROM players
+  WHERE position LIKE '%CB%' OR position LIKE '%LB%' OR position LIKE '%RB%'
   ORDER BY ovr DESC LIMIT 10
-  
-- "Find midfielders" → 
-  SELECT rank, name, ovr, position, team, pas, vision 
-  FROM players 
-  WHERE position LIKE '%CM%' OR position LIKE '%CDM%' OR position LIKE '%CAM%' 
+
+- "Find midfielders" →
+  SELECT rank, name, ovr, position, team, pas, vision
+  FROM players
+  WHERE position LIKE '%CM%' OR position LIKE '%CDM%' OR position LIKE '%CAM%'
   LIMIT 10
-  
-- "Fastest players" → 
-  SELECT rank, name, ovr, position, team, pac, sprint_speed, acceleration 
-  FROM players 
+
+- "Fastest players" →
+  SELECT rank, name, ovr, position, team, pac, sprint_speed, acceleration
+  FROM players
   ORDER BY pac DESC LIMIT 10
-  
-- "Players from Barcelona" → 
-  SELECT rank, name, ovr, position, team, age, nation 
-  FROM players 
-  WHERE team LIKE '%Barcelona%' 
+
+- "Players from Barcelona" →
+  SELECT rank, name, ovr, position, team, age, nation
+  FROM players
+  WHERE team LIKE '%Barcelona%'
   LIMIT 10
-  
-- "Premier League players" → 
-  SELECT rank, name, ovr, position, team, league, age 
-  FROM players 
-  WHERE league LIKE '%Premier League%' 
+
+- "Premier League players" →
+  SELECT rank, name, ovr, position, team, league, age
+  FROM players
+  WHERE league LIKE '%Premier League%'
   LIMIT 10
-  
-- "Tallest player in each position" → 
-  SELECT DISTINCT ON (position) rank, name, ovr, position, team, height 
-  FROM players 
+
+- "Tallest player in each position" →
+  SELECT DISTINCT ON (position) rank, name, ovr, position, team, height
+  FROM players
   ORDER BY position, height DESC
-  
-- "Best player in each team" → 
-  SELECT DISTINCT ON (team) rank, name, ovr, position, team 
-  FROM players 
+
+- "Best player in each team" →
+  SELECT DISTINCT ON (team) rank, name, ovr, position, team
+  FROM players
   ORDER BY team, ovr DESC
-  
-- "Top 20 players" → 
-  SELECT rank, name, ovr, position, team 
-  FROM players 
+
+- "Top 20 players" →
+  SELECT rank, name, ovr, position, team
+  FROM players
   ORDER BY ovr DESC LIMIT 20
-  
-- "Top 100 players" → 
-  SELECT rank, name, ovr, position, team 
-  FROM players 
+
+- "Top 100 players" →
+  SELECT rank, name, ovr, position, team
+  FROM players
   ORDER BY ovr DESC LIMIT 50
   (Note: Capped at 50 even though user asked for 100)
 """
 
 # ---------------- Prompt Builder ----------------
-def build_schema_aware_prompt(question: str, schema_text: str) -> str:
-    """Build schema & dataset-aware prompt for AI."""
-    current_model = get_current_model()
-    
-    # Add model-specific instructions
-    model_specific_instruction = ""
-    if "gpt-4" in current_model.lower():
-        model_specific_instruction = "\nIMPORTANT: Return ONLY the SQL query without any markdown formatting, code blocks, or extra text. Do not wrap the query in ```sql or ``` tags."
-    
+def build_schema_aware_prompt(schema_text: str) -> str:
+    """Build schema & dataset-aware system prompt for AI."""
     return (
-        f"{question}\n\n"
+        "You are a SQL query generator. Given a natural language question about FC 25 football players, "
+        "return ONLY a valid PostgreSQL SELECT query. No explanation, no markdown, no code blocks.\n\n"
         "Here is the database schema:\n"
         f"{schema_text}\n\n"
         "Here is a detailed description of each column:\n"
@@ -192,8 +184,8 @@ def build_schema_aware_prompt(question: str, schema_text: str) -> str:
         "Follow the SQL guidelines above for position filtering and team/league name matching. "
         "IMPORTANT: Always use LIMIT 10 as default (not 5, not 20 - exactly 10). "
         "IMPORTANT: Always include mandatory columns: rank, name, ovr, position, team. "
-        "Do not place a semicolon before the LIMIT clause. Only use a semicolon at the very end of the SQL statement."
-        f"{model_specific_instruction}"
+        "Do not place a semicolon before the LIMIT clause. Only use a semicolon at the very end of the SQL statement. "
+        "Return ONLY the SQL query without any markdown formatting, code blocks, or extra text."
     )
 
 # ---------------- Helper Functions ----------------
@@ -201,15 +193,15 @@ def clean_sql_query(sql_text: str) -> str:
     """Clean SQL query by removing markdown formatting and extra text."""
     if not sql_text:
         return ""
-    
+
     # Remove markdown code block markers
     sql_text = re.sub(r'```sql\s*', '', sql_text, flags=re.IGNORECASE)
     sql_text = re.sub(r'```\s*$', '', sql_text, flags=re.MULTILINE)
     sql_text = re.sub(r'```', '', sql_text)
-    
+
     # Remove SQLQuery: prefix if present
     sql_text = re.sub(r'^SQLQuery:\s*', '', sql_text, flags=re.IGNORECASE | re.MULTILINE)
-    
+
     # Extract SQL query using multiple patterns
     patterns = [
         # Pattern 1: Look for SELECT...FROM pattern
@@ -217,7 +209,7 @@ def clean_sql_query(sql_text: str) -> str:
         # Pattern 2: More comprehensive SELECT pattern
         r'(SELECT\s+(?:DISTINCT\s+ON\s*\([^)]+\)\s+)?.*?FROM\s+.*?(?:WHERE\s+.*?)?(?:GROUP\s+BY\s+.*?)?(?:ORDER\s+BY\s+.*?)?(?:LIMIT\s+\d+)?)\s*;?',
     ]
-    
+
     for pattern in patterns:
         match = re.search(pattern, sql_text, re.IGNORECASE | re.DOTALL)
         if match:
@@ -225,7 +217,7 @@ def clean_sql_query(sql_text: str) -> str:
             # Clean up any remaining artifacts
             sql_query = re.sub(r'\s+', ' ', sql_query)  # Normalize whitespace
             return sql_query
-    
+
     # If no patterns match, return cleaned text
     return sql_text.strip()
 
@@ -237,76 +229,6 @@ def format_raw_rows(raw_result: List[Any], column_names: List[str]) -> List[Dict
         {column_names[i]: value for i, value in enumerate(row) if i < len(column_names)}
         for row in raw_result
     ]
-
-def extract_sql_query(result_dict: Dict[str, Any]) -> str:
-    """Extract SQL query from AI intermediate steps with improved cleaning."""
-    current_model = get_current_model()
-    logger.info(f"Extracting SQL query for model: {current_model}")
-    
-    # Try to extract from intermediate steps
-    intermediate_steps = result_dict.get("intermediate_steps", [])
-    for step in intermediate_steps:
-        if isinstance(step, str):
-            if "SELECT" in step.upper() and "FROM" in step.upper():
-                cleaned_sql = clean_sql_query(step)
-                if cleaned_sql and cleaned_sql.upper().startswith("SELECT"):
-                    return cleaned_sql.rstrip(';')
-        elif isinstance(step, dict) and 'sql_cmd' in step:
-            cleaned_sql = clean_sql_query(step['sql_cmd'])
-            if cleaned_sql:
-                return cleaned_sql.rstrip(';')
-    
-    # Try to extract from the full result string
-    result_str = str(result_dict)
-    
-    # Pattern for GPT-4o format with markdown
-    markdown_pattern = r'```sql\s*(SELECT.*?)```'
-    markdown_match = re.search(markdown_pattern, result_str, re.IGNORECASE | re.DOTALL)
-    if markdown_match:
-        cleaned_sql = clean_sql_query(markdown_match.group(1))
-        if cleaned_sql:
-            return cleaned_sql.rstrip(';')
-    
-    # Pattern for traditional SQLQuery format
-    sql_pattern = r'SQLQuery:\s*(SELECT.*?)(?:SQLResult:|$)'
-    sql_match = re.search(sql_pattern, result_str, re.IGNORECASE | re.DOTALL)
-    if sql_match:
-        cleaned_sql = clean_sql_query(sql_match.group(1))
-        if cleaned_sql:
-            return cleaned_sql.rstrip(';')
-    
-    # Last resort: look for any SELECT statement
-    select_pattern = r'(SELECT\s+.*?FROM\s+.*?)(?=\n|$|SQLResult:|```)'
-    select_match = re.search(select_pattern, result_str, re.IGNORECASE | re.DOTALL)
-    if select_match:
-        cleaned_sql = clean_sql_query(select_match.group(1))
-        if cleaned_sql:
-            return cleaned_sql.rstrip(';')
-    
-    return ""
-
-def extract_raw_results(result_dict: Dict[str, Any], sql_query: str) -> List[Any]:
-    """Extract raw query results from AI output or run SQL directly."""
-    intermediate_steps = result_dict.get("intermediate_steps", [])
-    for step in intermediate_steps:
-        if isinstance(step, str):
-            if step.startswith('[') and step.endswith(']'):
-                try:
-                    return ast.literal_eval(step)
-                except:
-                    pass
-            if "SQLResult:" in step:
-                try:
-                    return ast.literal_eval(step.split("SQLResult:")[-1].strip())
-                except:
-                    pass
-    if sql_query:
-        try:
-            raw_result = get_db().run(sql_query)
-            return ast.literal_eval(raw_result) if raw_result else []
-        except Exception as e:
-            logger.error(f"Error executing query directly: {e}")
-    return []
 
 def extract_column_names(sql_query: str) -> List[str]:
     """Extract column names from SQL query."""
@@ -345,24 +267,21 @@ def handle_query(question: str) -> QueryResponse:
         logger.info(f"Alias mapping applied. Transformed question: {mapped_question}")
     question = mapped_question
 
-    # Get cached schema for prompt
+    # Build schema-aware system prompt
     schema_text = get_schema_text()
+    system_prompt = build_schema_aware_prompt(schema_text)
 
-    # Build schema & dataset-aware prompt
-    prompt_with_schema = build_schema_aware_prompt(question, schema_text)
-
-    # First attempt
-    db_chain = get_db_chain()
-    result = db_chain.invoke(prompt_with_schema)
-    sql_query = extract_sql_query(result)
+    # Generate SQL via OpenAI
+    raw_sql = generate_sql(system_prompt, question)
+    sql_query = clean_sql_query(raw_sql)
     retried = False
 
     # Retry if invalid
     if not sql_query or not sql_query.strip().upper().startswith("SELECT"):
         logger.warning("First attempt failed to produce valid SELECT SQL. Retrying...")
         retried = True
-        result = db_chain.invoke(prompt_with_schema)
-        sql_query = extract_sql_query(result)
+        raw_sql = generate_sql(system_prompt, question)
+        sql_query = clean_sql_query(raw_sql)
 
     execution_time = int((time.time() - start_time) * 1000)
 
@@ -388,25 +307,37 @@ def handle_query(question: str) -> QueryResponse:
             error_message="Only SELECT queries are allowed."
         )
 
-    # Add LIMIT clause to prevent token overflow with OpenAI API
-    # Limit to 20 rows max to avoid exceeding token limits
+    # Add LIMIT clause if missing
     if "LIMIT" not in sql_query.upper():
         sql_query = sql_query.rstrip(';').strip() + " LIMIT 20"
         logger.info("Added LIMIT 20 clause to query to prevent token overflow")
 
-    # Execute query
-    raw_db_result = extract_raw_results(result, sql_query)
+    # Execute query directly
+    try:
+        raw_db_result = execute_raw_sql(sql_query)
+    except Exception as e:
+        logger.error(f"SQL execution error: {e}")
+        return QueryResponse(
+            sql_query=sql_query,
+            results="",
+            raw_rows=[],
+            status="error",
+            execution_time=int((time.time() - start_time) * 1000),
+            error_message=f"SQL execution failed: {e}",
+            created_date=datetime.utcnow()
+        )
+
     column_names = extract_column_names(sql_query)
     formatted_rows = format_raw_rows(raw_db_result, column_names)
-    
-    # Limit results to 20 rows to prevent token overflow with OpenAI API
+
+    # Limit results to 20 rows
     MAX_ROWS = 20
     if len(formatted_rows) > MAX_ROWS:
         logger.info(f"Limiting results from {len(formatted_rows)} rows to {MAX_ROWS} rows")
         formatted_rows = formatted_rows[:MAX_ROWS]
 
     if retried:
-        logger.info("✅ Retry successful")
+        logger.info("Retry successful")
     logger.info(f"Model: {current_model}")
     logger.info("SQLQuery:\n" + sql_query.strip())
     logger.info(f"Execution time: {execution_time} ms")
@@ -414,7 +345,7 @@ def handle_query(question: str) -> QueryResponse:
 
     return QueryResponse(
         sql_query=sql_query,
-        results=result.get("result", ""),
+        results=f"Query returned {len(formatted_rows)} rows",
         raw_rows=formatted_rows,
         status="success",
         execution_time=execution_time,

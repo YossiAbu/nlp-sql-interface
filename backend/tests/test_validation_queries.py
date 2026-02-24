@@ -99,12 +99,15 @@ class TestRealModelValidation:
         # Smart filtering validation
         if "WHERE" in expected_sql_clean:
             if "WHERE" not in generated_sql:
-                # Check if it's a "high X" query where sorting by X DESC is acceptable
-                if "ORDER BY" in generated_sql:
-                    order_match = expected_sql_clean.split("ORDER BY")[1].split()[0].strip(',')
-                    if order_match not in generated_sql:
+                # Accept ORDER BY on the same columns as a valid alternative to WHERE filtering
+                # e.g. "high passing" → WHERE pas > 85 is equivalent to ORDER BY pas DESC LIMIT N
+                if "ORDER BY" in generated_sql and expected_columns:
+                    order_part = generated_sql.split("ORDER BY")[1].split("LIMIT")[0]
+                    order_cols = set(col.strip().rstrip(",").split()[0].lower()
+                                     for col in order_part.split(",") if col.strip())
+                    if not expected_columns & order_cols:
                         critical_issues.append("Missing WHERE clause (no filtering)")
-                else:
+                elif "ORDER BY" not in generated_sql:
                     critical_issues.append("Missing WHERE clause (no filtering)")
             else:
                 # Has WHERE, but check if filtering the right columns

@@ -2,7 +2,7 @@
 import os
 import uuid
 from datetime import datetime
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy import Table, Column, String, MetaData, TIMESTAMP, select
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
@@ -22,7 +22,11 @@ users_table = Table(
     Column("created_at", TIMESTAMP, default=datetime.utcnow),
 )
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def _hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+def _verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode(), password_hash.encode())
 
 def get_engine():
     """Return SQLAlchemy engine instance for users database."""
@@ -30,7 +34,7 @@ def get_engine():
 
 def create_user(full_name: str, email: str, password: str):
     engine = get_engine()
-    hashed_pw = pwd_context.hash(password)
+    hashed_pw = _hash_password(password)
     user_id = str(uuid.uuid4())
     with engine.connect() as conn:
         try:
@@ -59,7 +63,7 @@ def authenticate_user(email: str, password: str):
 
         user_dict = dict(user._mapping)
 
-        if not pwd_context.verify(password, user_dict["password_hash"]):
+        if not _verify_password(password, user_dict["password_hash"]):
             return None
 
         return user_dict

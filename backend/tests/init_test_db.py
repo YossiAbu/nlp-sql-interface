@@ -91,11 +91,11 @@ def create_players_table_and_data(database_url: str = None):
                     (10, 'Neymar Jr', 89, 'LW', 'Al Hilal', 'Brazil', 'Saudi Pro League', 31, 175, 68, 88, 85, 86, 94, 37, 59, 5, 5, 'Right', 88, 90, 89, 62, 87, 95, 87, 0, 0, 0, 0, 0, 56, 78)
             """))
             conn.commit()
-            print("✅ Inserted 10 test players")
+            print("Inserted 10 test players")
         else:
-            print(f"✅ Players table already contains {count} rows, skipping insert")
-    
-    print("✅ Test database initialized successfully")
+            print(f"Players table already contains {count} rows, skipping insert")
+
+    print("Test database initialized successfully")
 
 
 if __name__ == "__main__":
